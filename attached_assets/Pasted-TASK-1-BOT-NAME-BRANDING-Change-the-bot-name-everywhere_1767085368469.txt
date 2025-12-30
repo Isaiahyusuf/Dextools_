@@ -1,0 +1,74 @@
+TASK 1: BOT NAME & BRANDING
+	•	Change the bot name everywhere from “OmniTrending” to “DexTools Trending Bot”
+	•	Update all occurrences including:
+	•	Bot title / display name
+	•	Welcome messages
+	•	Menu headers
+	•	Payment messages
+	•	Any hardcoded text, constants, comments, README, or config values
+	•	Do NOT change the bot logic or flow, only rename branding references.
+
+TASK 2: CHAINS CONFIGURATION
+	•	Keep all existing supported chains EXCEPT remove Arbitrum completely
+	•	Ensure Arbitrum is removed from:
+	•	Chain selection menus
+	•	Chain enums/constants
+	•	Validation logic
+	•	Payment routing
+	•	Any chain-based conditionals
+	•	Remaining chains must continue to work normally across the entire bot.
+
+TASK 3: PRICING UPDATE (GLOBAL, ALL CHAINS)
+Replace all old pricing logic with the following new pricing tiers and apply them consistently for every supported chain:
+	•	3 HOURS → 2.5 SOL
+	•	6 HOURS → 6.5 SOL
+	•	12 HOURS → 10 SOL
+	•	24 HOURS → 15 SOL
+
+Make sure:
+	•	Prices are updated in menus, buttons, confirmations, invoices, and validation checks
+	•	Duration labels remain unchanged (3H, 6H, 12H, 24H)
+	•	No legacy prices remain anywhere in the codebase
+
+TASK 4: PAYMENT WALLET ADDRESSES
+Replace all existing payment addresses with the following, applied globally:
+	•	SOLANA (SOL):
+AGN5AWVWWY3XxfqSnVDPgzcZRWHTHaunbp1ZkE8htaQm
+	•	BNB (BSC):
+0x7042ED5C8e93B5afAEC6eE6c03B83aaD61aC4446
+	•	ETHEREUM (ETH):
+0x7042ED5C8e93B5afAEC6eE6c03B83aaD61aC4446
+	•	BASE:
+0x7042ED5C8e93B5afAEC6eE6c03B83aaD61aC4446
+
+Ensure:
+	•	No old wallet addresses remain anywhere
+	•	Payment verification logic still maps correctly to each chain
+	•	SOL uses the Solana address only
+	•	EVM chains reuse the same EVM address as specified
+
+TASK 5: SUPPORT CONTACT UPDATE
+	•	Replace the existing support contact with:
+@DEXToolsTrend_Support
+	•	Update this everywhere:
+	•	Support buttons
+	•	Help messages
+	•	Error messages
+	•	Footer text
+	•	Remove any previous support usernames entirely.
+
+TASK 6: FINAL CHECKS
+	•	Do NOT change bot architecture, database schema, or flow
+	•	Keep all existing features working
+	•	Ensure naming, pricing, chains, wallets, and support are consistent across:
+	•	Start command
+	•	Inline buttons
+	•	Callbacks
+	•	Payment confirmations
+	•	Admin or logging messages if present
+
+Once complete, run a quick search to confirm:
+	•	“OmniTrending” no longer exists
+	•	Old prices no longer exist
+	•	Arbitrum references no longer exist
+	•	Old wallet addresses no longer exist
