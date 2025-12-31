@@ -23,7 +23,7 @@ if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN environment variable not found!")
 
 # ---------------- Admin / Channel config ----------------
-SUPPORT_IDS = [8435563121]                   # Allowed support user IDs (will receive debug messages)
+SUPPORT_IDS = [7886119612]                   # Allowed support user IDs (will receive debug messages)
 CHANNEL_ID = -1002271758972                 # Channel ID (negative) where posts will be sent
 
 # ---------------- Footer / Branding ----------------
