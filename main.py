@@ -54,11 +54,20 @@ PAYMENT_WALLETS = {
 }
 
 # ---------------- Trending Packages ----------------
+# Rates (approximate Jan 2026): 1 SOL = 0.042 ETH / 0.148 BNB / $125 USD
 TRENDING_PACKAGES = {
     "solana": {"3h": 2.5, "6h": 6.5, "12h": 10, "24h": 15},
-    "ethereum": {"3h": 2.5, "6h": 6.5, "12h": 10, "24h": 15},
-    "base": {"3h": 2.5, "6h": 6.5, "12h": 10, "24h": 15},
-    "bsc": {"3h": 2.5, "6h": 6.5, "12h": 10, "24h": 15}
+    "ethereum": {"3h": 0.1, "6h": 0.27, "12h": 0.42, "24h": 0.63},
+    "base": {"3h": 0.1, "6h": 0.27, "12h": 0.42, "24h": 0.63},
+    "bsc": {"3h": 0.37, "6h": 0.96, "12h": 1.48, "24h": 2.22}
+}
+
+# ---------------- Payment Units ----------------
+PAYMENT_UNITS = {
+    "solana": "SOL",
+    "ethereum": "ETH",
+    "base": "ETH",
+    "bsc": "BNB"
 }
 
 # ---------------- Chain ID mapping ----------------
@@ -449,19 +458,20 @@ async def handle_trend_package_selection(callback_query: types.CallbackQuery, st
     await state.update_data(selected_package=duration_label, payment_amount=amount)
 
     # Show payment info to user with "Paid" button
+    payment_unit = PAYMENT_UNITS.get(network, "SOL")
     payment_message = (
         f"╔══════════════════════════╗\n"
         f"     <b>💳 PAYMENT DETAILS</b>\n"
         f"╚══════════════════════════╝\n\n"
         f"{network_emoji} <b>Network:</b> {network.upper()}\n"
         f"⏰ <b>Package:</b> {duration_label.upper()}\n"
-        f"💰 <b>Amount:</b> {amount} SOL\n\n"
+        f"💰 <b>Amount:</b> {amount} {payment_unit}\n\n"
         f"┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
         f"┃  <b>📝 PAYMENT WALLET</b>      ┃\n"
         f"┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
         f"<code>{payment_wallet}</code>\n\n"
         f"<b>📌 Instructions:</b>\n"
-        f"1️⃣ Send <b>{amount} SOL</b> to the wallet above\n"
+        f"1️⃣ Send <b>{amount} {payment_unit}</b> to the wallet above\n"
         f"2️⃣ Click the <b>Paid</b> button below when done\n"
     )
 
@@ -487,6 +497,7 @@ async def handle_payment_paid(callback_query: types.CallbackQuery, state: FSMCon
     username = callback_query.from_user.username or "Unknown"
     user_id = callback_query.from_user.id
     user_full_name = callback_query.from_user.full_name or "Unknown"
+    payment_unit = PAYMENT_UNITS.get(network, "SOL")
 
     # Notify support team with activation button
     try:
@@ -499,7 +510,7 @@ async def handle_payment_paid(callback_query: types.CallbackQuery, state: FSMCon
             f"{network_emoji} <b>Network:</b> {network.upper()}\n"
             f"📝 <b>Contract:</b> <code>{contract_address}</code>\n"
             f"⏰ <b>Package:</b> {selected_package.upper()}\n"
-            f"💰 <b>Amount:</b> {payment_amount} SOL\n\n"
+            f"💰 <b>Amount:</b> {payment_amount} {payment_unit}\n\n"
             f"<b>⚠️ User clicked PAID - Awaiting TX ID</b>"
         )
 
@@ -936,11 +947,16 @@ async def handle_show_prices(callback_query: types.CallbackQuery):
         f"╔══════════════════════════╗\n"
         f"     <b>💰 TRENDING PRICES</b>\n"
         f"╚══════════════════════════╝\n\n"
-        f"⚡ <b>3 HOURS:</b> 2.5 SOL\n"
-        f"⚡ <b>6 HOURS:</b> 6.5 SOL\n"
-        f"⚡ <b>12 HOURS:</b> 10 SOL\n"
-        f"⚡ <b>24 HOURS:</b> 15 SOL\n\n"
-        f"🚀 <i>Prices apply to all supported chains!</i>\n\n"
+        f"💜 <b>Solana:</b>\n"
+        f"  • 3H: 2.5 SOL | 6H: 6.5 SOL\n"
+        f"  • 12H: 10 SOL | 24H: 15 SOL\n\n"
+        f"💠 <b>Ethereum / Base:</b>\n"
+        f"  • 3H: 0.10 ETH | 6H: 0.27 ETH\n"
+        f"  • 12H: 0.42 ETH | 24H: 0.63 ETH\n\n"
+        f"🟡 <b>BSC:</b>\n"
+        f"  • 3H: 0.37 BNB | 6H: 0.96 BNB\n"
+        f"  • 12H: 1.48 BNB | 24H: 2.22 BNB\n\n"
+        f"🚀 <i>Prices are fixed equivalents!</i>\n\n"
         f"<b>📌 How It Works:</b>\n"
         f"1️⃣ Select a network and provide token CA\n"
         f"2️⃣ Choose trending package duration\n"
