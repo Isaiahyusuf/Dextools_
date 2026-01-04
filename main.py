@@ -259,6 +259,40 @@ async def resize_image(url, size=(300,300)):
         await send_support_log("ERROR", f"Error resizing image: {e}", {"url": url})
         return None
 
+def get_social_buttons(pair_data, chart_url=None):
+    """Helper to extract social links and return a list of button rows."""
+    social_buttons = []
+    info = pair_data.get('info', {})
+    social_links = info.get('socials', [])
+    websites = info.get('websites', [])
+
+    for site in websites:
+        url = site.get('url')
+        if url:
+            social_buttons.append(InlineKeyboardButton("Website", url=url))
+
+    for social in social_links:
+        s_type = social.get('type', '').lower()
+        url = social.get('url')
+        if not url: continue
+        if 'telegram' in s_type or 't.me' in url:
+            social_buttons.append(InlineKeyboardButton("Telegram", url=url))
+        elif 'twitter' in s_type or 'x.com' in url:
+            social_buttons.append(InlineKeyboardButton("Twitter", url=url))
+        elif 'discord' in s_type:
+            social_buttons.append(InlineKeyboardButton("Discord", url=url))
+
+    rows = []
+    # Add socials in rows of 2
+    for i in range(0, len(social_buttons), 2):
+        rows.append(social_buttons[i:i+2])
+
+    if chart_url:
+        rows.append([InlineKeyboardButton("📊 View Chart", url=chart_url)])
+    
+    rows.append([InlineKeyboardButton("🌐 DexTools Trending Bot • 100K Monthly Subscribers", url="https://t.me/DEXToolsTrend_Support")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
 def create_professional_message(pair_data, chain_name):
     if not pair_data:
         return None, None, None
@@ -664,40 +698,9 @@ async def handle_activate_trending(callback_query: types.CallbackQuery):
         f"{POST_FOOTER}"
     )
 
-    buttons = []
-    # Social Links extraction
-    social_buttons = []
-    social_links = pair_data.get('info', {}).get('socials', [])
-    websites = pair_data.get('info', {}).get('websites', [])
-
-    for site in websites:
-        url = site.get('url')
-        if url:
-            social_buttons.append(InlineKeyboardButton("Website", url=url))
-
-    for social in social_links:
-        s_type = social.get('type', '').lower()
-        url = social.get('url')
-        if not url: continue
-
-        if 'telegram' in s_type or 't.me' in url:
-            social_buttons.append(InlineKeyboardButton("Telegram", url=url))
-        elif 'twitter' in s_type or 'x.com' in url:
-            social_buttons.append(InlineKeyboardButton("Twitter", url=url))
-        elif 'discord' in s_type:
-            social_buttons.append(InlineKeyboardButton("Discord", url=url))
-
-    # Add socials to keyboard in rows of 2
-    for i in range(0, len(social_buttons), 2):
-        buttons.append(social_buttons[i:i+2])
-
-    if chart_url:
-        buttons.append([InlineKeyboardButton("📊 View Chart", url=chart_url)])
-    buttons.append([InlineKeyboardButton("🌐 DexTools Trending Bot • 100K Monthly Subscribers", url="https://t.me/DEXToolsTrend_Support")])
-    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-
     # Post to channel (photo if logo available)
     try:
+        markup = get_social_buttons(pair_data, chart_url)
         if logo_url:
             img = await resize_image(logo_url)
             if img:
@@ -705,19 +708,19 @@ async def handle_activate_trending(callback_query: types.CallbackQuery):
                     chat_id=CHANNEL_ID,
                     photo=img,
                     caption=started_text,
-                    reply_markup=keyboard
+                    reply_markup=markup
                 )
             else:
                 channel_msg = await bot.send_message(
                     chat_id=CHANNEL_ID,
                     text=started_text,
-                    reply_markup=keyboard
+                    reply_markup=markup
                 )
         else:
             channel_msg = await bot.send_message(
                 chat_id=CHANNEL_ID,
                 text=started_text,
-                reply_markup=keyboard
+                reply_markup=markup
             )
     except Exception as e:
         error_msg = str(e)
@@ -806,24 +809,48 @@ async def monitor_trending_session(session_msg_id):
 
                 # edit the main channel post
                 try:
+                    markup = get_social_buttons(pair_data, session.get("chart_url") or chart_url)
                     if session["channel_message"]["is_photo"]:
                         await bot.edit_message_caption(
                             chat_id=session["channel_message"]["chat_id"],
                             message_id=session["channel_message"]["message_id"],
                             caption=caption_with_footer,
-                            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                                [InlineKeyboardButton("📊 View Chart", url=session.get("chart_url") or chart_url)]
-                            ]) if (session.get("chart_url") or chart_url) else None
+                            reply_markup=markup
                         )
                     else:
                         await bot.edit_message_text(
                             chat_id=session["channel_message"]["chat_id"],
                             message_id=session["channel_message"]["message_id"],
                             text=caption_with_footer,
-                            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                                [InlineKeyboardButton("📊 View Chart", url=session.get("chart_url") or chart_url)]
-                            ]) if (session.get("chart_url") or chart_url) else None
+                            reply_markup=markup
                         )
+                    
+                    # ALSO POST A NEW MESSAGE EVERY 10 SECONDS AS REQUESTED
+                    try:
+                        if logo_url:
+                            img = await resize_image(logo_url)
+                            if img:
+                                await bot.send_photo(
+                                    chat_id=session["channel_message"]["chat_id"],
+                                    photo=img,
+                                    caption=f"📊 <b>LIVE UPDATE</b>\n\n{caption_with_footer}",
+                                    reply_markup=markup
+                                )
+                            else:
+                                await bot.send_message(
+                                    chat_id=session["channel_message"]["chat_id"],
+                                    text=f"📊 <b>LIVE UPDATE</b>\n\n{caption_with_footer}",
+                                    reply_markup=markup
+                                )
+                        else:
+                            await bot.send_message(
+                                chat_id=session["channel_message"]["chat_id"],
+                                text=f"📊 <b>LIVE UPDATE</b>\n\n{caption_with_footer}",
+                                reply_markup=markup
+                            )
+                    except Exception as e:
+                        logger.error("Failed to post interval update: %s", e)
+
                 except Exception as e:
                     logger.debug("Failed to edit channel message: %s", e)
 
@@ -927,14 +954,15 @@ async def post_threshold_alert(session, pair_data, current_price, pct_change, th
 
     # send photo alert if logo exists
     try:
+        markup = get_social_buttons(pair_data, chart_url)
         if logo_url:
             img = await resize_image(logo_url)
             if img:
-                await bot.send_photo(chat_id=CHANNEL_ID, photo=img, caption=msg_text, parse_mode="HTML")
+                await bot.send_photo(chat_id=CHANNEL_ID, photo=img, caption=msg_text, reply_markup=markup, parse_mode="HTML")
             else:
-                await bot.send_message(chat_id=CHANNEL_ID, text=msg_text, parse_mode="HTML")
+                await bot.send_message(chat_id=CHANNEL_ID, text=msg_text, reply_markup=markup, parse_mode="HTML")
         else:
-            await bot.send_message(chat_id=CHANNEL_ID, text=msg_text, parse_mode="HTML")
+            await bot.send_message(chat_id=CHANNEL_ID, text=msg_text, reply_markup=markup, parse_mode="HTML")
 
         # send debug copy to support about this alert
         await send_support_log("ALERT", f"{'HIGH' if is_high else 'DUMP'} triggered for {symbol}", {
