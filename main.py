@@ -665,6 +665,33 @@ async def handle_activate_trending(callback_query: types.CallbackQuery):
     )
 
     buttons = []
+    # Social Links extraction
+    social_buttons = []
+    social_links = pair_data.get('info', {}).get('socials', [])
+    websites = pair_data.get('info', {}).get('websites', [])
+
+    for site in websites:
+        label = site.get('label', 'Website')
+        url = site.get('url')
+        if url:
+            social_buttons.append(InlineKeyboardButton(f"🌐 {label}", url=url))
+
+    for social in social_links:
+        s_type = social.get('type', '').lower()
+        url = social.get('url')
+        if not url: continue
+
+        if 'telegram' in s_type or 't.me' in url:
+            social_buttons.append(InlineKeyboardButton("✈️ Telegram", url=url))
+        elif 'twitter' in s_type or 'x.com' in url:
+            social_buttons.append(InlineKeyboardButton("🐦 Twitter/X", url=url))
+        elif 'discord' in s_type:
+            social_buttons.append(InlineKeyboardButton("👾 Discord", url=url))
+
+    # Add socials to keyboard in rows of 2
+    for i in range(0, len(social_buttons), 2):
+        buttons.append(social_buttons[i:i+2])
+
     if chart_url:
         buttons.append([InlineKeyboardButton("📊 View Chart", url=chart_url)])
     buttons.append([InlineKeyboardButton("🌐 DexTools Trending Bot • 100K Monthly Subscribers", url="https://t.me/DEXToolsTrend_Support")])
