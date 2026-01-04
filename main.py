@@ -671,10 +671,9 @@ async def handle_activate_trending(callback_query: types.CallbackQuery):
     websites = pair_data.get('info', {}).get('websites', [])
 
     for site in websites:
-        label = site.get('label', 'Website')
         url = site.get('url')
         if url:
-            social_buttons.append(InlineKeyboardButton(f"🌐 {label}", url=url))
+            social_buttons.append(InlineKeyboardButton("Website", url=url))
 
     for social in social_links:
         s_type = social.get('type', '').lower()
@@ -682,11 +681,11 @@ async def handle_activate_trending(callback_query: types.CallbackQuery):
         if not url: continue
 
         if 'telegram' in s_type or 't.me' in url:
-            social_buttons.append(InlineKeyboardButton("✈️ Telegram", url=url))
+            social_buttons.append(InlineKeyboardButton("Telegram", url=url))
         elif 'twitter' in s_type or 'x.com' in url:
-            social_buttons.append(InlineKeyboardButton("🐦 Twitter/X", url=url))
+            social_buttons.append(InlineKeyboardButton("Twitter", url=url))
         elif 'discord' in s_type:
-            social_buttons.append(InlineKeyboardButton("👾 Discord", url=url))
+            social_buttons.append(InlineKeyboardButton("Discord", url=url))
 
     # Add socials to keyboard in rows of 2
     for i in range(0, len(social_buttons), 2):
