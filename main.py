@@ -24,7 +24,7 @@ if not BOT_TOKEN:
 
 # ---------------- Admin / Channel config ----------------
 SUPPORT_IDS = [7886119612]                   # Allowed support user IDs (will receive debug messages)
-CHANNEL_ID = -1002271758972                 # Channel ID (negative) where posts will be sent
+CHANNEL_ID = -1003251300654                 # Channel ID (negative) where posts will be sent
 
 # ---------------- Footer / Branding ----------------
 POST_FOOTER = "\n\n🌐 DexTools Trending Bot • visibility for your  token"
