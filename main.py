@@ -109,8 +109,8 @@ user_contracts = {}
 # thresholds to watch (percent)
 THRESHOLDS = [10, 20, 30, 40, 50, 60, 70]
 
-# poll interval in seconds for checking updates (every 3 minutes as requested).
-POLL_INTERVAL = 180
+# poll interval in seconds for checking updates (every 10 seconds as requested).
+POLL_INTERVAL = 10
 
 # ---------------- Helpers ----------------
 async def send_support_log(level: str, text: str, extra: dict = None):
