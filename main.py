@@ -96,6 +96,7 @@ class UserState(StatesGroup):
     waiting_for_ca = State()
     waiting_for_trend_package = State()
     waiting_for_payment = State()
+    waiting_for_tx_id = State()
     trending_active = State()
 
 # ---------------- Runtime session storage ----------------
@@ -472,7 +473,7 @@ async def handle_trend_package_selection(callback_query: types.CallbackQuery, st
         f"<code>{payment_wallet}</code>\n\n"
         f"<b>📌 Instructions:</b>\n"
         f"1️⃣ Send <b>{amount} {payment_unit}</b> to the wallet above\n"
-        f"2️⃣ Click the <b>Paid</b> button below when done\n"
+        f"2️⃣ Click the <b>Paid</b> button below to provide your <b>Transaction ID / Hash</b>\n"
     )
 
     paid_button = InlineKeyboardMarkup(inline_keyboard=[
@@ -486,39 +487,46 @@ async def handle_trend_package_selection(callback_query: types.CallbackQuery, st
 @dp.callback_query_handler(lambda c: c.data == "payment_paid", state=UserState.waiting_for_payment)
 async def handle_payment_paid(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.answer()
+    await callback_query.message.answer("📩 Please send the <b>Transaction ID (TX ID) / Hash</b> of your payment.")
+    await UserState.waiting_for_tx_id.set()
 
+# ---------------- Handle TX ID Submission ----------------
+@dp.message_handler(state=UserState.waiting_for_tx_id)
+async def handle_tx_id_submission(message: types.Message, state: FSMContext):
+    tx_id = message.text.strip()
     user_data = await state.get_data()
     network = user_data.get("selected_network", "ethereum")
     contract_address = user_data.get("contract_address", "N/A")
     selected_package = user_data.get("selected_package", "3h")
     payment_amount = user_data.get("payment_amount", 0)
+    payment_unit = PAYMENT_UNITS.get(network, "SOL")
 
     network_emoji = NETWORK_EMOJIS.get(network, "🔗")
-    username = callback_query.from_user.username or "Unknown"
-    user_id = callback_query.from_user.id
-    user_full_name = callback_query.from_user.full_name or "Unknown"
-    payment_unit = PAYMENT_UNITS.get(network, "SOL")
+    username = message.from_user.username or "Unknown"
+    user_id = message.from_user.id
+    user_full_name = message.from_user.full_name or "Unknown"
 
     # Notify support team with activation button
     try:
         support_notification = (
             f"╔══════════════════════════╗\n"
-            f"  <b>🚀 PAYMENT CLAIMED</b>\n"
+            f"  <b>🚀 PAYMENT SUBMITTED</b>\n"
             f"╚══════════════════════════╝\n\n"
             f"👤 <b>User:</b> {user_full_name} (@{username})\n"
             f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
             f"{network_emoji} <b>Network:</b> {network.upper()}\n"
             f"📝 <b>Contract:</b> <code>{contract_address}</code>\n"
             f"⏰ <b>Package:</b> {selected_package.upper()}\n"
-            f"💰 <b>Amount:</b> {payment_amount} {payment_unit}\n\n"
-            f"<b>⚠️ User clicked PAID - Awaiting TX ID</b>"
+            f"💰 <b>Amount:</b> {payment_amount} {payment_unit}\n"
+            f"🔗 <b>TX ID:</b> <code>{tx_id}</code>\n\n"
+            f"<b>Please verify the transaction and activate trending below.</b>"
         )
 
         # Add activation & reject buttons for support
         activate_button = InlineKeyboardMarkup(inline_keyboard=[
             [
-                InlineKeyboardButton("✅ Activate Trending", callback_data=f"activate_{user_id}_{network}_{selected_package}"),
-                InlineKeyboardButton("❌ Reject Payment", callback_data=f"reject_{user_id}_{network}_{selected_package}")
+                InlineKeyboardButton("✅ Activate", callback_data=f"activate_{user_id}_{network}_{selected_package}"),
+                InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user_id}_{network}_{selected_package}")
             ]
         ])
 
@@ -542,16 +550,13 @@ async def handle_payment_paid(callback_query: types.CallbackQuery, state: FSMCon
     except Exception as e:
         logger.exception("Error preparing support notification: %s", e)
 
-    # Ask user to send TX ID to support
-    user_message = (
-        f"✅ <b>Payment Confirmed!</b>\n\n"
-        f"📩 <b>Next Step:</b>\n"
-        f"Please send your <b>Transaction ID (TX ID)</b> to our support team for verification.\n\n"
-        f"💬 <b>Send TX ID to:</b> @DEXToolsTrend_Support\n\n"
-        f"After verification, your trending will be activated!"
+    # Confirm receipt to user
+    confirmation_msg = (
+        "✅ <b>Transaction Received!</b>\n\n"
+        "Our team is currently verifying your payment. Once confirmed, your trending session will be activated automatically.\n\n"
+        "⏳ <b>Estimated time:</b> 5-15 minutes."
     )
-
-    await callback_query.message.answer(user_message)
+    await message.answer(confirmation_msg)
     await state.finish()
 
 # ---------------- Reject Payment (Support Only) ----------------
