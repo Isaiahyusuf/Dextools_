@@ -693,16 +693,13 @@ async def handle_activate_trending(callback_query: types.CallbackQuery):
                 text=started_text,
                 reply_markup=keyboard
             )
-
-        # Try to pin the message in the channel (requires bot admin)
-        try:
-            await bot.pin_chat_message(CHANNEL_ID, channel_msg.message_id, disable_notification=True)
-        except Exception as e:
-            logger.info("Pin attempt failed: %s", e)
-
     except Exception as e:
-        await callback_query.message.answer(f"❌ Failed to post to channel: {e}")
-        await send_support_log("ERROR", f"Failed to post trending started: {e}", {"contract": contract_address})
+        error_msg = str(e)
+        if "chat not found" in error_msg.lower():
+            await callback_query.message.answer(f"❌ <b>Activation Error:</b> Channel not found.\n\nPlease ensure the bot is added to the channel <code>{CHANNEL_ID}</code> as an <b>Administrator</b> with posting permissions.")
+        else:
+            await callback_query.message.answer(f"❌ <b>Failed to post to channel:</b> {e}")
+        await send_support_log("ERROR", f"Failed to post trending started: {e}", {"contract": contract_address, "channel_id": CHANNEL_ID})
         return
 
     # Build session and store it
