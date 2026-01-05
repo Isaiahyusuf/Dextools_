@@ -54,13 +54,39 @@ PAYMENT_WALLETS = {
 }
 
 # ---------------- Trending Packages ----------------
-# Rates (approximate Jan 2026): 1 SOL = 0.042 ETH / 0.148 BNB / $125 USD
+# Standard Trending Packages (Previous)
 TRENDING_PACKAGES = {
     "solana": {"3h": 2.5, "6h": 6.5, "12h": 10, "24h": 15},
     "ethereum": {"3h": 0.1, "6h": 0.27, "12h": 0.42, "24h": 0.63},
     "base": {"3h": 0.1, "6h": 0.27, "12h": 0.42, "24h": 0.63},
     "bsc": {"3h": 0.37, "6h": 0.96, "12h": 1.48, "24h": 2.22}
 }
+
+# Hot Pairs Packages (New)
+# 6h: $2000, 12h: $4000, 24h: $6000
+HOT_PAIRS_BASE_USD = {
+    "6h": 2000,
+    "12h": 4000,
+    "24h": 6000
+}
+
+# Real-time Prices (Approximate for calculation if API fails)
+CURRENCY_PRICES = {
+    "SOL": 134.50,
+    "ETH": 3150.00,
+    "BNB": 895.00
+}
+
+async def get_live_prices():
+    """Fetch live prices for SOL, ETH, BNB from DexScreener or similar."""
+    # Using hardcoded for stability as requested "is not stable", but can be updated via fetch
+    return CURRENCY_PRICES
+
+async def calculate_package_price(usd_amount, network):
+    prices = await get_live_prices()
+    unit = PAYMENT_UNITS.get(network, "ETH")
+    price_per_unit = prices.get(unit, 1)
+    return round(usd_amount / price_per_unit, 4)
 
 # ---------------- Payment Units ----------------
 PAYMENT_UNITS = {
@@ -95,9 +121,11 @@ dp = Dispatcher(bot, storage=storage)
 class UserState(StatesGroup):
     waiting_for_ca = State()
     waiting_for_trend_package = State()
+    waiting_for_hot_pairs_package = State()
     waiting_for_payment = State()
     waiting_for_tx_id = State()
     trending_active = State()
+    selecting_network = State()
 
 # ---------------- Runtime session storage ----------------
 # key = session_id (channel message id), value = dict with session details
@@ -374,35 +402,112 @@ async def start_command(message: types.Message, state: FSMContext):
         f"  <b>🌟 DEXTOOLS TRENDING BOT 🌟</b>\n"
         f"╚══════════════════════════╝\n\n"
         f"👋 Welcome, <b>{user_first}</b>!\n\n"
-        f"Your professional multi-chain DEX analytics platform.\n\n"
-        f"<b>📊 Track & Trend Across:</b>\n"
-        f"💜 Solana  |  💠 Ethereum  |  🟡 BSC\n"
-        f"🧊 Base\n\n"
-        f"Select a network below to get started! 👇"
+        f"Select a service below to get started! 👇"
     )
     buttons = [
-        [InlineKeyboardButton("💜 Solana", callback_data="select_solana")],
-        [InlineKeyboardButton("💠 Ethereum", callback_data="select_ethereum")],
-        [InlineKeyboardButton("🟡 BSC", callback_data="select_bsc")],
-        [InlineKeyboardButton("🧊 Base", callback_data="select_base")],
+        [InlineKeyboardButton("🔥 Get on Hot Pairs", callback_data="service_hot_pairs")],
+        [InlineKeyboardButton("🚀 Trending", callback_data="service_trending")],
         [InlineKeyboardButton("💰 Prices", callback_data="show_prices")],
         [InlineKeyboardButton("🛠️ Support", callback_data="support")]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     await message.answer(start_text, reply_markup=keyboard)
 
+# ---------------- Service Selection ----------------
+@dp.callback_query_handler(lambda c: c.data.startswith("service_"), state='*')
+async def handle_service_selection(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.answer()
+    service = callback_query.data.split("_")[1]
+    await state.update_data(selected_service=service)
+    
+    text = "Select a network below: 👇"
+    if service == "hot_pairs":
+        text = "🔥 <b>Hot Pairs Service</b>\n\nSelect a network for Hot Pairs Trending:"
+    else:
+        text = "🚀 <b>Trending Service</b>\n\nSelect a network for Trending:"
+        
+    buttons = [
+        [InlineKeyboardButton("💜 Solana", callback_data="select_solana")],
+        [InlineKeyboardButton("💠 Ethereum", callback_data="select_ethereum")],
+        [InlineKeyboardButton("🟡 BSC", callback_data="select_bsc")],
+        [InlineKeyboardButton("🧊 Base", callback_data="select_base")],
+        [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
+    ]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback_query.message.edit_text(text, reply_markup=keyboard)
+
 # ---------------- Network Selection ----------------
 @dp.callback_query_handler(lambda c: c.data.startswith("select_"), state='*')
 async def handle_network_selection(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.answer()
     network = callback_query.data.split("_")[1]
+    user_data = await state.get_data()
+    service = user_data.get("selected_service", "trending")
     await state.update_data(selected_network=network)
-    await UserState.waiting_for_ca.set()
-    network_emoji = NETWORK_EMOJIS.get(network,"🔗")
-    await callback_query.message.answer(
-        f"✅ <b>{network_emoji} {network.upper()} Network Selected</b>\n\n"
-        f"Please send the <b>Contract Address (CA)</b> of the token you want to analyze."
+    
+    if service == "hot_pairs":
+        # Calculate dynamic prices
+        prices_text = "💎 <b>HOT PAIRS PACKAGES (Top 1-10)</b>\n\n"
+        buttons = []
+        for label, usd_amount in HOT_PAIRS_BASE_USD.items():
+            crypto_amount = await calculate_package_price(usd_amount, network)
+            unit = PAYMENT_UNITS.get(network, "ETH")
+            prices_text += f"• {label.upper()}: ${usd_amount} (≈ {crypto_amount} {unit})\n"
+            buttons.append([InlineKeyboardButton(f"{label.upper()} - ${usd_amount}", callback_data=f"hot_trend_{label}")])
+        
+        prices_text += f"\nSelect your package for {network.upper()}:"
+        buttons.append([InlineKeyboardButton("🔙 Back", callback_data="service_hot_pairs")])
+        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+        await callback_query.message.edit_text(prices_text, reply_markup=keyboard)
+        await UserState.waiting_for_hot_pairs_package.set()
+    else:
+        await UserState.waiting_for_ca.set()
+        network_emoji = NETWORK_EMOJIS.get(network,"🔗")
+        await callback_query.message.edit_text(
+            f"✅ <b>{network_emoji} {network.upper()} Network Selected</b>\n\n"
+            f"Please send the <b>Contract Address (CA)</b> of the token you want to analyze."
+        )
+
+# ---------------- Handle Hot Pairs Selection ----------------
+@dp.callback_query_handler(lambda c: c.data.startswith("hot_trend_"), state=UserState.waiting_for_hot_pairs_package)
+async def handle_hot_pairs_selection(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.answer()
+    label = callback_query.data.replace("hot_trend_", "")
+    user_data = await state.get_data()
+    network = user_data.get("selected_network", "ethereum")
+    
+    usd_amount = HOT_PAIRS_BASE_USD.get(label, 2000)
+    crypto_amount = await calculate_package_price(usd_amount, network)
+    payment_unit = PAYMENT_UNITS.get(network, "ETH")
+    payment_wallet = PAYMENT_WALLETS.get(network, "")
+    network_emoji = NETWORK_EMOJIS.get(network, "🔗")
+    
+    await state.update_data(selected_package=label, payment_amount=crypto_amount, is_hot_pairs=True)
+    
+    payment_message = (
+        f"╔══════════════════════════╗\n"
+        f"     <b>💳 PAYMENT DETAILS</b>\n"
+        f"╚══════════════════════════╝\n\n"
+        f"🔥 <b>SERVICE: HOT PAIRS (Top 1-10)</b>\n"
+        f"{network_emoji} <b>Network:</b> {network.upper()}\n"
+        f"⏰ <b>Package:</b> {label.upper()}\n"
+        f"💰 <b>Amount:</b> {crypto_amount} {payment_unit} (${usd_amount} USD)\n\n"
+        f"┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
+        f"┃  <b>📝 PAYMENT WALLET</b>      ┃\n"
+        f"┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
+        f"<code>{payment_wallet}</code>\n\n"
+        f"<b>📌 Instructions:</b>\n"
+        f"1️⃣ Send <b>{crypto_amount} {payment_unit}</b> to the wallet above\n"
+        f"2️⃣ Click the <b>Paid</b> button below to provide your <b>Transaction ID / Hash</b>\n"
     )
+    
+    paid_button = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton("✅ Paid", callback_data="payment_paid")],
+        [InlineKeyboardButton("🔙 Back", callback_data=f"select_{network}")]
+    ])
+    
+    await callback_query.message.edit_text(payment_message, reply_markup=paid_button)
+    await UserState.waiting_for_payment.set()
 
 # ---------------- Contract Address Handler ----------------
 @dp.message_handler(state=UserState.waiting_for_ca)
@@ -555,11 +660,15 @@ async def handle_tx_id_submission(message: types.Message, state: FSMContext):
     user_full_name = message.from_user.full_name or "Unknown"
 
     # Notify support team with activation button
+    is_hot = user_data.get("is_hot_pairs", False)
+    service_label = "HOT PAIRS" if is_hot else "TRENDING"
+    
     try:
         support_notification = (
             f"╔══════════════════════════╗\n"
             f"  <b>🚀 PAYMENT SUBMITTED</b>\n"
             f"╚══════════════════════════╝\n\n"
+            f"🛠 <b>SERVICE:</b> {service_label}\n"
             f"👤 <b>User:</b> {user_full_name} (@{username})\n"
             f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
             f"{network_emoji} <b>Network:</b> {network.upper()}\n"
@@ -567,7 +676,7 @@ async def handle_tx_id_submission(message: types.Message, state: FSMContext):
             f"⏰ <b>Package:</b> {selected_package.upper()}\n"
             f"💰 <b>Amount:</b> {payment_amount} {payment_unit}\n"
             f"🔗 <b>TX ID:</b> <code>{tx_id}</code>\n\n"
-            f"<b>Please verify the transaction and activate trending below.</b>"
+            f"<b>Please verify the transaction and activate below.</b>"
         )
 
         # Add activation & reject buttons for support
