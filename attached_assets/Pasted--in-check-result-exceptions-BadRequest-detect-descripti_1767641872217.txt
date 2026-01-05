@@ -1,0 +1,87 @@
+, in check_result
+    exceptions.BadRequest.detect(description)
+Traceback (most recent call last):
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 415, in _process_polling_updates
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/types/message.py", line 2919, in edit_text
+    for responses in itertools.chain.from_iterable(await self.process_updates(updates, fast)):
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 235, in process_updates
+    return await self.bot.edit_message_text(
+    return await asyncio.gather(*tasks)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/bot.py", line 3122, in edit_message_text
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/handler.py", line 117, in notify
+    response = await handler_obj.handler(*args, **partial_data)
+    result = await self.request(api.Methods.EDIT_MESSAGE_TEXT, payload)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 283, in process_update
+    return await self.callback_query_handlers.notify(update.callback_query)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/handler.py", line 117, in notify
+    response = await handler_obj.handler(*args, **partial_data)
+  File "/app/main.py", line 625, in handle_start_trending
+    await callback_query.message.edit_text(trending_text, reply_markup=keyboard)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/base.py", line 236, in request
+    return await api.make_request(await self.get_session(), self.server, self.__token, method, data, files,
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/api.py", line 140, in make_request
+    return check_result(method, response.content_type, response.status, await response.text())
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/api.py", line 115, in check_result
+    exceptions.BadRequest.detect(description)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/utils/exceptions.py", line 141, in detect
+    raise cls(description)
+aiogram.utils.exceptions.BadRequest: There is no text in the message to edit
+Task exception was never retrieved
+future: <Task finished name='Task-266' coro=<Dispatcher._process_polling_updates() done, defined at /app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py:407> exception=BadRequest('There is no text in the message to edit')>
+Traceback (most recent call last):
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 415, in _process_polling_updates
+    for responses in itertools.chain.from_iterable(await self.process_updates(updates, fast)):
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 235, in process_updates
+    return await asyncio.gather(*tasks)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/handler.py", line 117, in notify
+    response = await handler_obj.handler(*args, **partial_data)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 283, in process_update
+    return await self.callback_query_handlers.notify(update.callback_query)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/handler.py", line 117, in notify
+    response = await handler_obj.handler(*args, **partial_data)
+  File "/app/main.py", line 625, in handle_start_trending
+    await callback_query.message.edit_text(trending_text, reply_markup=keyboard)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/types/message.py", line 2919, in edit_text
+    return await self.bot.edit_message_text(
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/bot.py", line 3122, in edit_message_text
+    result = await self.request(api.Methods.EDIT_MESSAGE_TEXT, payload)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/base.py", line 236, in request
+    return await api.make_request(await self.get_session(), self.server, self.__token, method, data, files,
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/api.py", line 140, in make_request
+    return check_result(method, response.content_type, response.status, await response.text())
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/api.py", line 115, in check_result
+    exceptions.BadRequest.detect(description)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/utils/exceptions.py", line 141, in detect
+    raise cls(description)
+aiogram.utils.exceptions.BadRequest: There is no text in the message to edit
+Task exception was never retrieved
+future: <Task finished name='Task-271' coro=<Dispatcher._process_polling_updates() done, defined at /app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py:407> exception=BadRequest('There is no text in the message to edit')>
+Traceback (most recent call last):
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 415, in _process_polling_updates
+    for responses in itertools.chain.from_iterable(await self.process_updates(updates, fast)):
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 235, in process_updates
+    return await asyncio.gather(*tasks)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/handler.py", line 117, in notify
+    response = await handler_obj.handler(*args, **partial_data)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 283, in process_update
+    return await self.callback_query_handlers.notify(update.callback_query)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/handler.py", line 117, in notify
+    response = await handler_obj.handler(*args, **partial_data)
+  File "/app/main.py", line 625, in handle_start_trending
+    await callback_query.message.edit_text(trending_text, reply_markup=keyboard)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/types/message.py", line 2919, in edit_text
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/api.py", line 115, in check_result
+    exceptions.BadRequest.detect(description)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/utils/exceptions.py", line 141, in detect
+    raise cls(description)
+aiogram.utils.exceptions.BadRequest: There is no text in the message to edit
+    return await self.bot.edit_message_text(
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/bot.py", line 3122, in edit_message_text
+    result = await self.request(api.Methods.EDIT_MESSAGE_TEXT, payload)
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/base.py", line 236, in request
+    return await api.make_request(await self.get_session(), self.server, self.__token, method, data, files,
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/bot/api.py", line 140, in make_request
+    return check_result(method, response.content_type, response.status, await response.text())
+  File "/app/.venv/lib/python3.10/site-packages/aiogram/types/message.py", line 2919, in edit_text
+Task exception was never retrieved
+future: <Task finished name='Task-277' coro=<Dispatcher._process_polling_updates() done, defined at /app/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py:407> exception=BadRequest('T
