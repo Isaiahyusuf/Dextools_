@@ -471,7 +471,7 @@ async def handle_network_selection(callback_query: types.CallbackQuery, state: F
         network_emoji = NETWORK_EMOJIS.get(network,"🔗")
         await callback_query.message.edit_text(
             f"✅ <b>{network_emoji} {network.upper()} Network Selected</b>\n\n"
-            f"Please send the <b>Contract Address (CA)</b> of the token you want to analyze."
+            f"Please send the <b>Contract Address (CA)</b> of the token you want to trend."
         )
 
 # ---------------- Handle Hot Pairs Selection ----------------
