@@ -83,9 +83,15 @@ async def get_live_prices():
     return CURRENCY_PRICES
 
 async def calculate_package_price(usd_amount, network):
-    prices = await get_live_prices()
+    # Fixed prices for Jan 2026 as per user requirement of "stable calculation"
+    # SOL: ~$135, ETH: ~$3150, BNB: ~$900
+    prices = {
+        "SOL": 135.0,
+        "ETH": 3150.0,
+        "BNB": 900.0
+    }
     unit = PAYMENT_UNITS.get(network, "ETH")
-    price_per_unit = prices.get(unit, 1)
+    price_per_unit = prices.get(unit, 1.0)
     return round(usd_amount / price_per_unit, 4)
 
 # ---------------- Payment Units ----------------
