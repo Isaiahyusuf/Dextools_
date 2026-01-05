@@ -53,8 +53,7 @@ PAYMENT_WALLETS = {
     "bsc": "0x7042ED5C8e93B5afAEC6eE6c03B83aaD61aC4446"
 }
 
-# Hot Pairs Packages (New)
-# 6h: $2000, 12h: $4000, 24h: $6000
+# Hot Pairs Packages (Top 1-10 only)
 HOT_PAIRS_BASE_USD = {
     "6h": 2000,
     "12h": 4000,
@@ -453,14 +452,13 @@ async def handle_network_selection(callback_query: types.CallbackQuery, state: F
     
     if service == "hot_pairs":
         # Calculate dynamic prices and show them immediately for Hot Pairs
-        # This skips the CA input and goes straight to package selection
         prices_text = "💎 <b>HOT PAIRS PACKAGES (Top 1-10)</b>\n\n"
         buttons = []
         for label, usd_amount in HOT_PAIRS_BASE_USD.items():
             crypto_amount = await calculate_package_price(usd_amount, network)
             unit = PAYMENT_UNITS.get(network, "ETH")
             prices_text += f"• {label.upper()}: ${usd_amount} (≈ {crypto_amount} {unit})\n"
-            buttons.append([InlineKeyboardButton(f"{label.upper()} - ${usd_amount}", callback_data=f"hot_trend_{label}")])
+            buttons.append([InlineKeyboardButton(f"{label.upper()} - ${usd_amount}", callback_data=f"hp_pkg_{label}")])
         
         prices_text += f"\nSelect your package for {network.upper()}:"
         buttons.append([InlineKeyboardButton("🔙 Back", callback_data="service_hot_pairs")])
@@ -477,10 +475,10 @@ async def handle_network_selection(callback_query: types.CallbackQuery, state: F
         )
 
 # ---------------- Handle Hot Pairs Selection ----------------
-@dp.callback_query_handler(lambda c: c.data.startswith("hot_trend_"), state=UserState.waiting_for_hot_pairs_package)
+@dp.callback_query_handler(lambda c: c.data.startswith("hp_pkg_"), state=UserState.waiting_for_hot_pairs_package)
 async def handle_hot_pairs_selection(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.answer()
-    label = callback_query.data.replace("hot_trend_", "")
+    label = callback_query.data.replace("hp_pkg_", "")
     user_data = await state.get_data()
     network = user_data.get("selected_network", "ethereum")
     
@@ -649,6 +647,7 @@ async def handle_trend_package_selection(callback_query: types.CallbackQuery, st
     user_data = await state.get_data()
     network = user_data.get("selected_network", "ethereum")
 
+    # Standard Trending Selection (3h, 6h, 12h, 24h)
     duration_map = {"trend_3h": "3h", "trend_6h": "6h", "trend_12h": "12h", "trend_24h": "24h"}
     package = callback_query.data
     duration_label = duration_map.get(package, "3h")
@@ -1224,7 +1223,7 @@ async def handle_show_prices(callback_query: types.CallbackQuery):
         f"• 6H:  $2,000\n"
         f"• 12H: $4,000\n"
         f"• 24H: $6,000\n\n"
-        f"🚀 <i>Crypto amounts are calculated live!</i>\n\n"
+        f"🚀 <i>Crypto amounts are calculated live based on current market prices!</i>\n\n"
         f"<b>📌 How It Works:</b>\n"
         f"1️⃣ Select a service (Trending or Hot Pairs)\n"
         f"2️⃣ Select your preferred network\n"
