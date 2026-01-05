@@ -1162,8 +1162,9 @@ async def handle_show_prices(callback_query: types.CallbackQuery):
 
     prices_text = (
         f"╔══════════════════════════╗\n"
-        f"     <b>💰 TRENDING PRICES</b>\n"
+        f"     <b>💰 SERVICE PRICES</b>\n"
         f"╚══════════════════════════╝\n\n"
+        f"🚀 <b>TRENDING PACKAGES</b>\n"
         f"💜 <b>Solana:</b>\n"
         f"  • 3H: 2.5 SOL | 6H: 6.5 SOL\n"
         f"  • 12H: 10 SOL | 24H: 15 SOL\n\n"
@@ -1173,11 +1174,15 @@ async def handle_show_prices(callback_query: types.CallbackQuery):
         f"🟡 <b>BSC:</b>\n"
         f"  • 3H: 0.37 BNB | 6H: 0.96 BNB\n"
         f"  • 12H: 1.48 BNB | 24H: 2.22 BNB\n\n"
-        f"🚀 <i>Prices are fixed equivalents!</i>\n\n"
+        f"🔥 <b>HOT PAIRS (Top 1-10)</b>\n"
+        f"• 6H:  $2,000\n"
+        f"• 12H: $4,000\n"
+        f"• 24H: $6,000\n\n"
+        f"🚀 <i>Crypto amounts are fixed equivalents!</i>\n\n"
         f"<b>📌 How It Works:</b>\n"
         f"1️⃣ Select a network and provide token CA\n"
-        f"2️⃣ Choose trending package duration\n"
-        f"3️⃣ Make payment and send TX ID to support\n"
+        f"2️⃣ Choose service and package duration\n"
+        f"3️⃣ Make payment and send TX ID\n"
         f"4️⃣ Your token goes trending! 🚀"
     )
 
