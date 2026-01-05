@@ -53,6 +53,14 @@ PAYMENT_WALLETS = {
     "bsc": "0x7042ED5C8e93B5afAEC6eE6c03B83aaD61aC4446"
 }
 
+# Hot Pairs Packages (New)
+# 6h: $2000, 12h: $4000, 24h: $6000
+HOT_PAIRS_BASE_USD = {
+    "6h": 2000,
+    "12h": 4000,
+    "24h": 6000
+}
+
 # ---------------- Trending Packages ----------------
 # Standard Trending Packages (Previous)
 TRENDING_PACKAGES = {
@@ -60,14 +68,6 @@ TRENDING_PACKAGES = {
     "ethereum": {"3h": 0.1, "6h": 0.27, "12h": 0.42, "24h": 0.63},
     "base": {"3h": 0.1, "6h": 0.27, "12h": 0.42, "24h": 0.63},
     "bsc": {"3h": 0.37, "6h": 0.96, "12h": 1.48, "24h": 2.22}
-}
-
-# Hot Pairs Packages (New)
-# 6h: $2000, 12h: $4000, 24h: $6000
-HOT_PAIRS_BASE_USD = {
-    "6h": 2000,
-    "12h": 4000,
-    "24h": 6000
 }
 
 # Real-time Prices (Approximate for calculation if API fails)
