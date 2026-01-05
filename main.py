@@ -465,14 +465,13 @@ async def handle_network_selection(callback_query: types.CallbackQuery, state: F
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
         await callback_query.message.edit_text(prices_text, reply_markup=keyboard)
         await UserState.waiting_for_hot_pairs_package.set()
-    else:
-        # Standard Trending goes to CA input
-        await UserState.waiting_for_ca.set()
-        network_emoji = NETWORK_EMOJIS.get(network,"🔗")
-        await callback_query.message.edit_text(
-            f"✅ <b>{network_emoji} {network.upper()} Network Selected</b>\n\n"
-            f"Please send the <b>Contract Address (CA)</b> of the token you want to trend."
-        )
+    # Standard Trendinggoes to CA input
+    await UserState.waiting_for_ca.set()
+    network_emoji = NETWORK_EMOJIS.get(network,"🔗")
+    await callback_query.message.edit_text(
+        f"✅ <b>{network_emoji} {network.upper()} Network Selected</b>\n\n"
+        f"Please send the <b>Contract Address (CA)</b> of the token you want to trend."
+    )
 
 # ---------------- Handle Hot Pairs Selection ----------------
 @dp.callback_query_handler(lambda c: c.data.startswith("hp_pkg_"), state=UserState.waiting_for_hot_pairs_package)
@@ -482,13 +481,20 @@ async def handle_hot_pairs_selection(callback_query: types.CallbackQuery, state:
     user_data = await state.get_data()
     network = user_data.get("selected_network", "ethereum")
     
+    # Specific Hot Pairs pricing rules
     usd_amount = HOT_PAIRS_BASE_USD.get(label, 2000)
     crypto_amount = await calculate_package_price(usd_amount, network)
     payment_unit = PAYMENT_UNITS.get(network, "ETH")
     payment_wallet = PAYMENT_WALLETS.get(network, "")
     network_emoji = NETWORK_EMOJIS.get(network, "🔗")
     
-    await state.update_data(selected_package=label, payment_amount=crypto_amount, is_hot_pairs=True)
+    # Store specific Hot Pairs data
+    await state.update_data(
+        selected_package=label, 
+        payment_amount=crypto_amount, 
+        is_hot_pairs=True,
+        hot_pairs_duration=label
+    )
     
     payment_message = (
         f"╔══════════════════════════╗\n"
@@ -604,6 +610,7 @@ async def handle_start_trending(callback_query: types.CallbackQuery, state: FSMC
         # Hot Pairs Package Selection
         prices_text = "💎 <b>HOT PAIRS PACKAGES (Top 1-10)</b>\n\n"
         buttons = []
+        # Hot Pairs specific durations (6h, 12h, 24h)
         for label, usd_amount in HOT_PAIRS_BASE_USD.items():
             crypto_amount = await calculate_package_price(usd_amount, network)
             unit = PAYMENT_UNITS.get(network, "ETH")
