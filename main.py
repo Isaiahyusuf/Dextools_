@@ -260,33 +260,9 @@ async def resize_image(url, size=(300,300)):
         return None
 
 def get_social_buttons(pair_data, chart_url=None):
-    """Helper to extract social links and return a list of button rows."""
-    social_buttons = []
-    info = pair_data.get('info', {})
-    social_links = info.get('socials', [])
-    websites = info.get('websites', [])
-
-    for site in websites:
-        url = site.get('url')
-        if url:
-            social_buttons.append(InlineKeyboardButton("Website", url=url))
-
-    for social in social_links:
-        s_type = social.get('type', '').lower()
-        url = social.get('url')
-        if not url: continue
-        if 'telegram' in s_type or 't.me' in url:
-            social_buttons.append(InlineKeyboardButton("Telegram", url=url))
-        elif 'twitter' in s_type or 'x.com' in url:
-            social_buttons.append(InlineKeyboardButton("Twitter", url=url))
-        elif 'discord' in s_type:
-            social_buttons.append(InlineKeyboardButton("Discord", url=url))
-
+    """Helper to return a list of button rows. Support button removed, dex link kept."""
     rows = []
-    # Add socials in rows of 2
-    for i in range(0, len(social_buttons), 2):
-        rows.append(social_buttons[i:i+2])
-
+    
     if chart_url:
         rows.append([InlineKeyboardButton("📊 View Chart", url=chart_url)])
     
@@ -310,6 +286,28 @@ def create_professional_message(pair_data, chain_name):
     pair_address = pair_data.get('pairAddress','')
     logo_url = pair_data.get('info',{}).get('imageUrl') or base_token.get('imageUrl')
 
+    # Social Links extraction for inline formatting
+    info = pair_data.get('info', {})
+    social_links = info.get('socials', [])
+    websites = info.get('websites', [])
+    
+    tg_link = ""
+    tw_link = ""
+    web_link = ""
+    
+    for site in websites:
+        url = site.get('url')
+        if url: web_link = url
+
+    for social in social_links:
+        s_type = social.get('type', '').lower()
+        url = social.get('url')
+        if not url: continue
+        if 'telegram' in s_type or 't.me' in url:
+            tg_link = url
+        elif 'twitter' in s_type or 'x.com' in url:
+            tw_link = url
+
     # Price formatting
     try:
         price_float = float(price_usd)
@@ -319,12 +317,28 @@ def create_professional_message(pair_data, chain_name):
     except: price_display = "N/A"
 
     network_emoji = NETWORK_EMOJIS.get(str(pair_chain).lower(),"🔗")
+    
+    symbol = base_token.get('symbol','Unknown')
+    name = base_token.get('name','Unknown')
+    
+    # Format social links inside the project name/info
+    display_name = name
+    if tg_link:
+        display_name = f"<a href='{tg_link}'>{display_name}</a>"
+    
+    social_row = ""
+    if tw_link or web_link:
+        links = []
+        if tw_link: links.append(f"<a href='{tw_link}'>Twitter</a>")
+        if web_link: links.append(f"<a href='{web_link}'>Website</a>")
+        social_row = " | ".join(links) + "\n\n"
 
     message = (
         f"╔══════════════════════════╗\n"
         f"     <b>🎯 TOKEN ANALYTICS</b>\n"
         f"╚══════════════════════════╝\n\n"
-        f"{network_emoji} <b>{base_token.get('symbol','Unknown')}</b> • {base_token.get('name','Unknown')}\n"
+        f"{network_emoji} <b>{symbol}</b> • {display_name}\n"
+        f"{social_row}"
         f"🏦 <b>DEX:</b> {dex_name.upper()}\n"
         f"⛓️ <b>Chain:</b> {pair_chain.upper()}\n\n"
         f"┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
