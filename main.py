@@ -609,7 +609,13 @@ async def handle_start_trending(callback_query: types.CallbackQuery, state: FSMC
         prices_text += f"\nSelect your Hot Pairs package for {network.upper()}:"
         buttons.append([InlineKeyboardButton("🔙 Back", callback_data=f"select_{network}")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-        await callback_query.message.edit_text(prices_text, reply_markup=keyboard)
+        
+        # Check if message has text before editing
+        if callback_query.message.text or callback_query.message.caption:
+            await callback_query.message.edit_text(prices_text, reply_markup=keyboard)
+        else:
+            await callback_query.message.answer(prices_text, reply_markup=keyboard)
+            await callback_query.message.delete()
         await UserState.waiting_for_hot_pairs_package.set()
     else:
         # Standard Trending Package Selection
@@ -622,7 +628,13 @@ async def handle_start_trending(callback_query: types.CallbackQuery, state: FSMC
         
         buttons.append([InlineKeyboardButton("🔙 Back", callback_data=f"select_{network}")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-        await callback_query.message.edit_text(trending_text, reply_markup=keyboard)
+        
+        # Check if message has text before editing
+        if callback_query.message.text or callback_query.message.caption:
+            await callback_query.message.edit_text(trending_text, reply_markup=keyboard)
+        else:
+            await callback_query.message.answer(trending_text, reply_markup=keyboard)
+            await callback_query.message.delete()
         await UserState.waiting_for_trend_package.set()
 
 # ---------------- Handle Trending Selection ----------------
