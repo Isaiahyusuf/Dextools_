@@ -597,6 +597,7 @@ async def handle_start_trending(callback_query: types.CallbackQuery, state: FSMC
     
     if service == "hot_pairs":
         # Hot Pairs Package Selection
+        # Calculate dynamic prices for Hot Pairs ($2000, $4000, $6000)
         prices_text = "💎 <b>HOT PAIRS PACKAGES (Top 1-10)</b>\n\n"
         buttons = []
         for label, usd_amount in HOT_PAIRS_BASE_USD.items():
@@ -612,15 +613,16 @@ async def handle_start_trending(callback_query: types.CallbackQuery, state: FSMC
         await UserState.waiting_for_hot_pairs_package.set()
     else:
         # Standard Trending Package Selection
-        # Show packages to user
-        buttons = [
-            [InlineKeyboardButton(f"3H", callback_data="trend_3h")],
-            [InlineKeyboardButton(f"6H", callback_data="trend_6h")],
-            [InlineKeyboardButton(f"12H", callback_data="trend_12h")],
-            [InlineKeyboardButton(f"24H", callback_data="trend_24h")]
-        ]
+        trending_text = f"📦 <b>Select Trending Package for {network.upper()}:</b>"
+        buttons = []
+        packages = TRENDING_PACKAGES.get(network, {})
+        for label, amount in packages.items():
+            unit = PAYMENT_UNITS.get(network, "ETH")
+            buttons.append([InlineKeyboardButton(f"{label.upper()} - {amount} {unit}", callback_data=f"trend_pkg_{label}")])
+        
+        buttons.append([InlineKeyboardButton("🔙 Back", callback_data=f"select_{network}")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-        await callback_query.message.answer("📦 Select Trending Package:", reply_markup=keyboard)
+        await callback_query.message.edit_text(trending_text, reply_markup=keyboard)
         await UserState.waiting_for_trend_package.set()
 
 # ---------------- Handle Trending Selection ----------------
@@ -1206,12 +1208,13 @@ async def handle_show_prices(callback_query: types.CallbackQuery):
         f"• 6H:  $2,000\n"
         f"• 12H: $4,000\n"
         f"• 24H: $6,000\n\n"
-        f"🚀 <i>Crypto amounts are fixed equivalents!</i>\n\n"
+        f"🚀 <i>Crypto amounts are calculated live!</i>\n\n"
         f"<b>📌 How It Works:</b>\n"
-        f"1️⃣ Select a network and provide token CA\n"
-        f"2️⃣ Choose service and package duration\n"
-        f"3️⃣ Make payment and send TX ID\n"
-        f"4️⃣ Your token goes trending! 🚀"
+        f"1️⃣ Select a service (Trending or Hot Pairs)\n"
+        f"2️⃣ Select your preferred network\n"
+        f"3️⃣ Choose package duration\n"
+        f"4️⃣ Make payment and send TX ID\n"
+        f"5️⃣ Your token goes trending! 🚀"
     )
 
     back_button = InlineKeyboardMarkup(inline_keyboard=[
