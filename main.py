@@ -685,6 +685,10 @@ async def handle_activate_trending(callback_query: types.CallbackQuery):
     except:
         baseline = 0.0
 
+    # Initial txn count for buy tracking
+    txns = pair_data.get('txns', {}).get('m5', {}) or pair_data.get('txns', {}).get('h1', {})
+    initial_buys = txns.get('buys', 0) if isinstance(txns, dict) else 0
+
     # Compose the "Trending Started" header message text
     base_token = pair_data.get('baseToken', {})
     symbol = base_token.get('symbol', 'TOKEN')
@@ -765,6 +769,7 @@ async def handle_activate_trending(callback_query: types.CallbackQuery):
         "contract": contract_address,
         "network": network,
         "baseline": baseline,
+        "initial_buys": initial_buys,
         "channel_message_id": channel_msg.message_id
     })
 
@@ -802,6 +807,28 @@ async def monitor_trending_session(session_msg_id):
                 pct_change = 0.0
                 if baseline and current_price:
                     pct_change = ((current_price - baseline) / baseline) * 100.0
+
+                # Track New Buys
+                txns = pair_data.get('txns', {}).get('m5', {}) or pair_data.get('txns', {}).get('h1', {})
+                current_total_buys = txns.get('buys', 0) if isinstance(txns, dict) else 0
+                last_total_buys = session.get("initial_buys", current_total_buys)
+                new_buys = current_total_buys - last_total_buys
+                
+                if new_buys > 0:
+                    session["initial_buys"] = current_total_buys
+                    buy_text = (
+                        f"🟢 <b>NEW BUY ALERT!</b>\n\n"
+                        f"<b>{pair_data.get('baseToken',{}).get('symbol','TOKEN')}</b> • {pair_data.get('baseToken',{}).get('name','')}\n"
+                        f"💰 <b>New Buys:</b> +{new_buys}\n"
+                        f"💵 <b>Price:</b> ${current_price:.8f}\n"
+                        f"📈 <b>Change:</b> {pct_change:.2f}%\n"
+                        f"{POST_FOOTER}"
+                    )
+                    try:
+                        markup = get_social_buttons(pair_data, session.get("chart_url") or chart_url)
+                        await bot.send_message(chat_id=CHANNEL_ID, text=buy_text, reply_markup=markup)
+                    except Exception as e:
+                        logger.error(f"Failed to post buy alert: {e}")
 
                 # Prepare updated pinned message caption/text
                 caption_extra = f"\n\n<b>Baseline:</b> {baseline}\n<b>Current:</b> {current_price}\n<b>Change:</b> {pct_change:.2f}%"
