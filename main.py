@@ -611,10 +611,12 @@ async def handle_start_trending(callback_query: types.CallbackQuery, state: FSMC
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
         
         # Check if message has text before editing
-        if callback_query.message.text or callback_query.message.caption:
-            await callback_query.message.edit_text(prices_text, reply_markup=keyboard)
+        if callback_query.message.text:
+            await callback_query.message.edit_text(prices_text, reply_markup=keyboard, parse_mode='HTML')
+        elif callback_query.message.caption:
+            await callback_query.message.edit_caption(caption=prices_text, reply_markup=keyboard, parse_mode='HTML')
         else:
-            await callback_query.message.answer(prices_text, reply_markup=keyboard)
+            await callback_query.message.answer(prices_text, reply_markup=keyboard, parse_mode='HTML')
             await callback_query.message.delete()
         await UserState.waiting_for_hot_pairs_package.set()
     else:
@@ -630,10 +632,12 @@ async def handle_start_trending(callback_query: types.CallbackQuery, state: FSMC
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
         
         # Check if message has text before editing
-        if callback_query.message.text or callback_query.message.caption:
-            await callback_query.message.edit_text(trending_text, reply_markup=keyboard)
+        if callback_query.message.text:
+            await callback_query.message.edit_text(trending_text, reply_markup=keyboard, parse_mode='HTML')
+        elif callback_query.message.caption:
+            await callback_query.message.edit_caption(caption=trending_text, reply_markup=keyboard, parse_mode='HTML')
         else:
-            await callback_query.message.answer(trending_text, reply_markup=keyboard)
+            await callback_query.message.answer(trending_text, reply_markup=keyboard, parse_mode='HTML')
             await callback_query.message.delete()
         await UserState.waiting_for_trend_package.set()
 
