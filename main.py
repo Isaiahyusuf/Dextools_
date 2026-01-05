@@ -452,7 +452,8 @@ async def handle_network_selection(callback_query: types.CallbackQuery, state: F
     await state.update_data(selected_network=network)
     
     if service == "hot_pairs":
-        # Calculate dynamic prices
+        # Calculate dynamic prices and show them immediately for Hot Pairs
+        # This skips the CA input and goes straight to package selection
         prices_text = "💎 <b>HOT PAIRS PACKAGES (Top 1-10)</b>\n\n"
         buttons = []
         for label, usd_amount in HOT_PAIRS_BASE_USD.items():
@@ -467,6 +468,7 @@ async def handle_network_selection(callback_query: types.CallbackQuery, state: F
         await callback_query.message.edit_text(prices_text, reply_markup=keyboard)
         await UserState.waiting_for_hot_pairs_package.set()
     else:
+        # Standard Trending goes to CA input
         await UserState.waiting_for_ca.set()
         network_emoji = NETWORK_EMOJIS.get(network,"🔗")
         await callback_query.message.edit_text(
@@ -552,7 +554,15 @@ async def handle_contract_address(message: types.Message, state: FSMContext):
         buttons = []
         if chart_url:
             buttons.append([InlineKeyboardButton("📊 View Live Chart", url=chart_url)])
-        buttons.append([InlineKeyboardButton("🚀 Start Trending", callback_data="start_trending")])
+        
+        user_data = await state.get_data()
+        service = user_data.get("selected_service", "trending")
+        
+        if service == "hot_pairs":
+            buttons.append([InlineKeyboardButton("🔥 Get on Hot Pairs", callback_data="start_trending")])
+        else:
+            buttons.append([InlineKeyboardButton("🚀 Start Trending", callback_data="start_trending")])
+            
         buttons.append([InlineKeyboardButton("🔄 Analyze Another", callback_data=f"select_{network}")])
         buttons.append([InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu"),
                         InlineKeyboardButton("💬 Support", callback_data="support")])
@@ -578,22 +588,40 @@ async def handle_contract_address(message: types.Message, state: FSMContext):
         await send_support_log("ERROR", f"Error in handle_contract_address: {e}", {"ca": ca})
 
 # ---------------- Start Trending Callback ----------------
-@dp.callback_query_handler(lambda c: c.data == "start_trending", state=UserState.waiting_for_trend_package)
+@dp.callback_query_handler(lambda c: c.data == "start_trending", state='*')
 async def handle_start_trending(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.answer()
     user_data = await state.get_data()
     network = user_data.get("selected_network","ethereum")
-    packages = TRENDING_PACKAGES.get(network,{})
-
-    # Show packages to user
-    buttons = [
-        [InlineKeyboardButton(f"3H", callback_data="trend_3h")],
-        [InlineKeyboardButton(f"6H", callback_data="trend_6h")],
-        [InlineKeyboardButton(f"12H", callback_data="trend_12h")],
-        [InlineKeyboardButton(f"24H", callback_data="trend_24h")]
-    ]
-    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback_query.message.answer("📦 Select Trending Package:", reply_markup=keyboard)
+    service = user_data.get("selected_service", "trending")
+    
+    if service == "hot_pairs":
+        # Hot Pairs Package Selection
+        prices_text = "💎 <b>HOT PAIRS PACKAGES (Top 1-10)</b>\n\n"
+        buttons = []
+        for label, usd_amount in HOT_PAIRS_BASE_USD.items():
+            crypto_amount = await calculate_package_price(usd_amount, network)
+            unit = PAYMENT_UNITS.get(network, "ETH")
+            prices_text += f"• {label.upper()}: ${usd_amount} (≈ {crypto_amount} {unit})\n"
+            buttons.append([InlineKeyboardButton(f"{label.upper()} - ${usd_amount}", callback_data=f"hot_trend_{label}")])
+        
+        prices_text += f"\nSelect your Hot Pairs package for {network.upper()}:"
+        buttons.append([InlineKeyboardButton("🔙 Back", callback_data=f"select_{network}")])
+        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+        await callback_query.message.edit_text(prices_text, reply_markup=keyboard)
+        await UserState.waiting_for_hot_pairs_package.set()
+    else:
+        # Standard Trending Package Selection
+        # Show packages to user
+        buttons = [
+            [InlineKeyboardButton(f"3H", callback_data="trend_3h")],
+            [InlineKeyboardButton(f"6H", callback_data="trend_6h")],
+            [InlineKeyboardButton(f"12H", callback_data="trend_12h")],
+            [InlineKeyboardButton(f"24H", callback_data="trend_24h")]
+        ]
+        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+        await callback_query.message.answer("📦 Select Trending Package:", reply_markup=keyboard)
+        await UserState.waiting_for_trend_package.set()
 
 # ---------------- Handle Trending Selection ----------------
 @dp.callback_query_handler(lambda c: c.data.startswith("trend_"), state=UserState.waiting_for_trend_package)
