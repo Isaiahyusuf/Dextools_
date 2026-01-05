@@ -686,8 +686,10 @@ async def handle_activate_trending(callback_query: types.CallbackQuery):
         baseline = 0.0
 
     # Initial txn count for buy tracking
-    txns = pair_data.get('txns', {}).get('m5', {}) or pair_data.get('txns', {}).get('h1', {})
-    initial_buys = txns.get('buys', 0) if isinstance(txns, dict) else 0
+    txns = pair_data.get('txns', {})
+    m5_txns = txns.get('m5', {}) if isinstance(txns.get('m5'), dict) else {}
+    h1_txns = txns.get('h1', {}) if isinstance(txns.get('h1'), dict) else {}
+    initial_buys = m5_txns.get('buys', 0) or h1_txns.get('buys', 0) or 0
 
     # Compose the "Trending Started" header message text
     base_token = pair_data.get('baseToken', {})
@@ -809,8 +811,11 @@ async def monitor_trending_session(session_msg_id):
                     pct_change = ((current_price - baseline) / baseline) * 100.0
 
                 # Track New Buys
-                txns = pair_data.get('txns', {}).get('m5', {}) or pair_data.get('txns', {}).get('h1', {})
-                current_total_buys = txns.get('buys', 0) if isinstance(txns, dict) else 0
+                txns = pair_data.get('txns', {})
+                m5_txns = txns.get('m5', {}) if isinstance(txns.get('m5'), dict) else {}
+                h1_txns = txns.get('h1', {}) if isinstance(txns.get('h1'), dict) else {}
+                current_total_buys = m5_txns.get('buys', 0) or h1_txns.get('buys', 0) or 0
+                
                 last_total_buys = session.get("initial_buys", current_total_buys)
                 new_buys = current_total_buys - last_total_buys
                 
