@@ -512,7 +512,14 @@ async def handle_hot_pairs_selection(callback_query: types.CallbackQuery, state:
         [InlineKeyboardButton("🔙 Back", callback_data=f"select_{network}")]
     ])
     
-    await callback_query.message.edit_text(payment_message, reply_markup=paid_button)
+    # Check if message has text before editing
+    if callback_query.message.text:
+        await callback_query.message.edit_text(payment_message, reply_markup=paid_button, parse_mode='HTML')
+    elif callback_query.message.caption:
+        await callback_query.message.edit_caption(caption=payment_message, reply_markup=paid_button, parse_mode='HTML')
+    else:
+        await callback_query.message.answer(payment_message, reply_markup=paid_button, parse_mode='HTML')
+        await callback_query.message.delete()
     await UserState.waiting_for_payment.set()
 
 # ---------------- Contract Address Handler ----------------
@@ -595,14 +602,13 @@ async def handle_start_trending(callback_query: types.CallbackQuery, state: FSMC
     
     if service == "hot_pairs":
         # Hot Pairs Package Selection
-        # Calculate dynamic prices for Hot Pairs ($2000, $4000, $6000)
         prices_text = "💎 <b>HOT PAIRS PACKAGES (Top 1-10)</b>\n\n"
         buttons = []
         for label, usd_amount in HOT_PAIRS_BASE_USD.items():
             crypto_amount = await calculate_package_price(usd_amount, network)
             unit = PAYMENT_UNITS.get(network, "ETH")
             prices_text += f"• {label.upper()}: ${usd_amount} (≈ {crypto_amount} {unit})\n"
-            buttons.append([InlineKeyboardButton(f"{label.upper()} - ${usd_amount}", callback_data=f"hot_trend_{label}")])
+            buttons.append([InlineKeyboardButton(f"{label.upper()} - ${usd_amount}", callback_data=f"hp_pkg_{label}")])
         
         prices_text += f"\nSelect your Hot Pairs package for {network.upper()}:"
         buttons.append([InlineKeyboardButton("🔙 Back", callback_data=f"select_{network}")])
@@ -651,16 +657,19 @@ async def handle_trend_package_selection(callback_query: types.CallbackQuery, st
     duration_map = {"trend_3h": "3h", "trend_6h": "6h", "trend_12h": "12h", "trend_24h": "24h"}
     package = callback_query.data
     duration_label = duration_map.get(package, "3h")
+    
+    # Store duration for session tracking
+    await state.update_data(selected_package=duration_label)
 
     # Get payment info
     payment_wallet = PAYMENT_WALLETS.get(network, "")
     packages = TRENDING_PACKAGES.get(network, {})
     amount = packages.get(duration_label, 0)
+    
+    # Update payment amount in state
+    await state.update_data(payment_amount=amount, is_hot_pairs=False)
 
     network_emoji = NETWORK_EMOJIS.get(network, "🔗")
-
-    # Store selected package info
-    await state.update_data(selected_package=duration_label, payment_amount=amount)
 
     # Show payment info to user with "Paid" button
     payment_unit = PAYMENT_UNITS.get(network, "SOL")
