@@ -124,11 +124,12 @@ async def send_support_log(level: str, text: str, extra: dict = None):
             pass
 
     # Send to support IDs (DM)
-    for sid in SUPPORT_IDS:
-        try:
-            await bot.send_message(sid, body, parse_mode="HTML")
-        except Exception as e:
-            logger.warning(f"Could not send support log to {sid}: {e}")
+    # Disabled sending logs to support IDs as requested
+    # for sid in SUPPORT_IDS:
+    #     try:
+    #         await bot.send_message(sid, body, parse_mode="HTML")
+    #     except Exception as e:
+    #         logger.warning(f"Could not send support log to {sid}: {e}")
 
     # Also log locally
     if level.upper() == "ERROR":
@@ -266,7 +267,6 @@ def get_social_buttons(pair_data, chart_url=None):
     if chart_url:
         rows.append([InlineKeyboardButton("📊 View Chart", url=chart_url)])
     
-    rows.append([InlineKeyboardButton("🌐 DexTools Trending Bot • 100K Monthly Subscribers", url="https://t.me/DEXToolsTrend_Support")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 def create_professional_message(pair_data, chain_name):
