@@ -30,14 +30,29 @@ class TokenMonitor:
         import main
         for address, last_pair in list(self.monitored_tokens.items()):
             try:
+                # Use a specific pair if available, otherwise general search
                 new_data = await main.fetch_token_info_raw(address)
                 if not new_data or 'pairs' not in new_data or not new_data['pairs']:
+                    logger.warning(f"No data for {address}")
                     continue
                 
-                new_pair = new_data['pairs'][0]
+                # Try to find the same pair address to be consistent
+                last_pair_address = last_pair.get('pairAddress')
+                new_pair = None
+                if last_pair_address:
+                    for p in new_data['pairs']:
+                        if p.get('pairAddress') == last_pair_address:
+                            new_pair = p
+                            break
+                
+                if not new_pair:
+                    new_pair = new_data['pairs'][0]
+                
+                logger.info(f"Checking {address}. Price: {new_pair.get('priceUsd')}")
                 
                 # Check for Pump/Dump (>= 10%)
-                change_1h = float(new_pair.get('priceChange', {}).get('h1', 0))
+                price_change = new_pair.get('priceChange', {})
+                change_1h = float(price_change.get('h1', 0))
                 
                 if change_1h >= PUMP_THRESHOLD_1H:
                     last_change = float(last_pair.get('priceChange', {}).get('h1', 0))
@@ -50,19 +65,24 @@ class TokenMonitor:
                         await self.post_alert(new_pair, "📉 BIG DUMP ALERT (10%+) ")
 
                 # Check for 'Buys' (Volume increases) every 10s
-                new_volume = float(new_pair.get('volume', {}).get('h24', 0))
+                # DexScreener volume is aggregate, so we track delta
+                volume_data = new_pair.get('volume', {})
+                new_volume = float(volume_data.get('h24', 0))
                 last_volume = self.last_buys.get(address, 0)
                 
-                if new_volume > last_volume:
+                if last_volume > 0 and new_volume > last_volume:
                     diff = new_volume - last_volume
+                    logger.info(f"💰 BUY DETECTED for {address}: ${diff:,.2f}")
                     await self.post_alert(new_pair, f"💰 BUY DETECTED (${diff:,.2f})")
+                elif last_volume == 0:
+                    logger.info(f"Initial volume for {address}: {new_volume}")
                 
                 # Update state
                 self.monitored_tokens[address] = new_pair
                 self.last_buys[address] = new_volume
                 
             except Exception as e:
-                logger.error(f"Error checking token {address}: {e}")
+                logger.error(f"Error checking token {address}: {e}", exc_info=True)
 
     async def post_alert(self, pair_data, alert_type):
         import main
