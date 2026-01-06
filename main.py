@@ -357,6 +357,7 @@ async def admin_activate(c: types.CallbackQuery):
         # Simple extraction using fixed prefixes
         ca = None
         net = None
+        pair = None
         
         for line in msg_text.split('\n'):
             if "CA:" in line:
@@ -364,31 +365,29 @@ async def admin_activate(c: types.CallbackQuery):
             if "Network:" in line:
                 net = line.split("Network:")[1].strip().lower()
                 
-                if ca and net:
-                    await monitor.add_token(ca) # Start monitoring the token when activated
-                    pair = await fetch_token_info(CHAIN_IDS.get(net, net), ca)
-            if pair:
-                msg, logo_url, chart_url = create_professional_message(pair)
-                kb = InlineKeyboardMarkup()
-                if chart_url:
-                    kb.add(InlineKeyboardButton(text="📊 View Chart", url=chart_url))
-                
-                if logo_url:
-                    img = await resize_image(logo_url)
-                    if img: await bot.send_photo(CHANNEL_ID, photo=img, caption=msg, reply_markup=kb)
-                    else: await bot.send_message(CHANNEL_ID, msg, reply_markup=kb)
-                else:
-                    await bot.send_message(CHANNEL_ID, msg, reply_markup=kb)
-                    
-                await c.message.edit_text(msg_text + "\n\n✅ <b>ACTIVATED!</b>")
-                try:
-                    await bot.send_message(user_id, "✅ <b>Payment Verified!</b>\nYour token is now live on Hot Pairs! 🚀")
-                except: pass
+        if ca and net:
+            await monitor.add_token(ca) # Start monitoring the token when activated
+            pair = await fetch_token_info(CHAIN_IDS.get(net, net), ca)
+            
+        if pair:
+            msg, logo_url, chart_url = create_professional_message(pair)
+            kb = InlineKeyboardMarkup()
+            if chart_url:
+                kb.add(InlineKeyboardButton(text="📊 View Chart", url=chart_url))
+            
+            if logo_url:
+                img = await resize_image(logo_url)
+                if img: await bot.send_photo(CHANNEL_ID, photo=img, caption=msg, reply_markup=kb)
+                else: await bot.send_message(CHANNEL_ID, msg, reply_markup=kb)
             else:
-                await c.answer("Error: Token info not found.")
+                await bot.send_message(CHANNEL_ID, msg, reply_markup=kb)
+                
+            await c.message.edit_text(msg_text + "\n\n✅ <b>ACTIVATED!</b>")
+            try:
+                await bot.send_message(user_id, "✅ <b>Payment Verified!</b>\nYour token is now live on Hot Pairs! 🚀")
+            except: pass
         else:
-            logger.error(f"Failed to parse CA or Network. Text: {msg_text}")
-            await c.answer("Error parsing CA/Network.")
+            await c.answer("Error: Token info not found.")
     except Exception as e:
         logger.error(f"Error in admin_activate: {e}")
         await c.answer(f"Error: {e}")
