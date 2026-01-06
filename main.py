@@ -368,7 +368,7 @@ async def admin_activate(c: types.CallbackQuery):
         if ca and net:
             await monitor.add_token(ca) # Start monitoring the token when activated
             pair = await fetch_token_info(CHAIN_IDS.get(net, net), ca)
-            
+        
         if pair:
             msg, logo_url, chart_url = create_professional_message(pair)
             kb = InlineKeyboardMarkup()
