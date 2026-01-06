@@ -55,8 +55,7 @@ class TokenMonitor:
                 
                 if new_volume > last_volume:
                     diff = new_volume - last_volume
-                    if diff >= BIG_BUY_THRESHOLD_USD:
-                        await self.post_alert(new_pair, f"💰 BIG BUY DETECTED (${diff:,.2f})")
+                    await self.post_alert(new_pair, f"💰 BUY DETECTED (${diff:,.2f})")
                 
                 # Update state
                 self.monitored_tokens[address] = new_pair
