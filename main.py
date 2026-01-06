@@ -112,9 +112,34 @@ def format_percentage(num):
         else: return f"⚪ {num:.2f}%"
     except: return "⚪ N/A"
 
+async def resize_image(url, size=(300,300)):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=10) as resp:
+                if resp.status != 200: return None
+                img_bytes = await resp.read()
+                img = Image.open(BytesIO(img_bytes))
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode == 'P': img = img.convert('RGBA')
+                    if img.mode in ('RGBA', 'LA'): background.paste(img, mask=img.split()[-1])
+                    else: background.paste(img)
+                    img = background
+                max_dim = max(img.size)
+                square_img = Image.new('RGB', (max_dim, max_dim), (255, 255, 255))
+                offset = ((max_dim - img.size[0]) // 2, (max_dim - img.size[1]) // 2)
+                square_img.paste(img, offset)
+                square_img.thumbnail(size, Image.Resampling.LANCZOS)
+                bio = BytesIO()
+                bio.name = "logo.png"
+                square_img.save(bio, format="PNG", quality=95)
+                bio.seek(0)
+                return bio
+    except: return None
+
 def create_professional_message(pair_data):
     if not pair_data:
-        return None
+        return None, None
     base_token = pair_data.get('baseToken',{})
     price_usd = pair_data.get('priceUsd','N/A')
     price_change_h24 = pair_data.get('priceChange',{}).get('h24',0)
@@ -126,30 +151,24 @@ def create_professional_message(pair_data):
     market_cap = pair_data.get('marketCap',0)
     pair_chain = pair_data.get('chainId','Unknown')
     dex_name = pair_data.get('dexId','Unknown')
+    logo_url = pair_data.get('info', {}).get('imageUrl') or base_token.get('imageUrl')
     
-    # Social Links extraction for inline formatting
     info = pair_data.get('info', {})
     social_links = info.get('socials', [])
     websites = info.get('websites', [])
-    
     tg_link = ""
     tw_link = ""
     web_link = ""
-    
     for site in websites:
         url = site.get('url')
         if url: web_link = url
-
     for social in social_links:
         s_type = social.get('type', '').lower()
         url = social.get('url')
         if not url: continue
-        if 'telegram' in s_type or 't.me' in url:
-            tg_link = url
-        elif 'twitter' in s_type or 'x.com' in url:
-            tw_link = url
+        if 'telegram' in s_type or 't.me' in url: tg_link = url
+        elif 'twitter' in s_type or 'x.com' in url: tw_link = url
 
-    # Price formatting
     try:
         price_float = float(price_usd)
         if price_float < 0.000001: price_display = f"${price_float:.10f}"
@@ -160,11 +179,8 @@ def create_professional_message(pair_data):
     network_emoji = NETWORK_EMOJIS.get(str(pair_chain).lower(),"🔗")
     symbol = base_token.get('symbol','Unknown')
     name = base_token.get('name','Unknown')
-    
     display_name = name
-    if tg_link:
-        display_name = f"<a href='{tg_link}'>{display_name}</a>"
-    
+    if tg_link: display_name = f"<a href='{tg_link}'>{display_name}</a>"
     social_row = ""
     if tw_link or web_link:
         links = []
@@ -201,7 +217,7 @@ def create_professional_message(pair_data):
         f"<code>{base_token.get('address','N/A')}</code>\n"
         f"{POST_FOOTER}"
     )
-    return message
+    return message, logo_url
 
 @dp.message_handler(commands=['start'], state='*')
 async def start_cmd(message: types.Message, state: FSMContext):
@@ -258,15 +274,22 @@ async def handle_ca(message: types.Message, state: FSMContext):
         return
     
     await state.update_data(ca=ca, pair_data=pair)
-    msg = create_professional_message(pair)
-    await message.answer(msg)
+    msg, logo_url = create_professional_message(pair)
+    
+    if logo_url:
+        img = await resize_image(logo_url)
+        if img:
+            await message.answer_photo(photo=img, caption=msg)
+        else:
+            await message.answer(msg)
+    else:
+        await message.answer(msg)
     
     wallet = PAYMENT_WALLETS.get(net)
     unit = PAYMENT_UNITS.get(net)
     crypto = data['crypto']
-    
     pay_msg = (
-        f"💳 <b>PAYMENT REQUIRED</b>\n\n"
+        f"💳 <b>PAYMENT DETAILS</b>\n\n"
         f"🔥 <b>Service:</b> Hot Pairs ({data['duration']})\n"
         f"💰 <b>Amount:</b> {crypto} {unit} (${data['usd']} USD)\n"
         f"🏦 <b>Wallet:</b>\n<code>{wallet}</code>\n\n"
@@ -288,9 +311,16 @@ async def handle_tx(message: types.Message, state: FSMContext):
     await message.answer("⏳ <b>Verifying Payment...</b>\nThis takes 1-5 minutes.")
     await asyncio.sleep(5)
     
-    msg = create_professional_message(data['pair_data'])
+    msg, logo_url = create_professional_message(data['pair_data'])
     try:
-        await bot.send_message(CHANNEL_ID, msg)
+        if logo_url:
+            img = await resize_image(logo_url)
+            if img:
+                await bot.send_photo(CHANNEL_ID, photo=img, caption=msg)
+            else:
+                await bot.send_message(CHANNEL_ID, msg)
+        else:
+            await bot.send_message(CHANNEL_ID, msg)
         await message.answer(f"✅ <b>Payment Verified!</b>\nYour token is now live on Hot Pairs! 🚀")
     except Exception as e:
         logger.error(f"Failed to post to channel: {e}")
