@@ -364,8 +364,9 @@ async def admin_activate(c: types.CallbackQuery):
             if "Network:" in line:
                 net = line.split("Network:")[1].strip().lower()
                 
-        if ca and net:
-            pair = await fetch_token_info(CHAIN_IDS.get(net, net), ca)
+                if ca and net:
+                    await monitor.add_token(ca) # Start monitoring the token when activated
+                    pair = await fetch_token_info(CHAIN_IDS.get(net, net), ca)
             if pair:
                 msg, logo_url, chart_url = create_professional_message(pair)
                 kb = InlineKeyboardMarkup()
@@ -400,5 +401,13 @@ async def support(c: types.CallbackQuery):
 async def main_menu(c: types.CallbackQuery, state: FSMContext):
     await start_cmd(c.message, state)
 
+from monitor import monitor
+
+# ... existing code ...
+
+async def on_startup(dp):
+    asyncio.create_task(monitor.run())
+    logger.info("Bot started and monitor task created")
+
 if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
