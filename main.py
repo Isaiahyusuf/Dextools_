@@ -2,6 +2,7 @@ import os
 import aiohttp
 import asyncio
 import logging
+import re
 from io import BytesIO
 from PIL import Image
 from aiogram import Bot, Dispatcher, types
@@ -22,7 +23,7 @@ if not BOT_TOKEN:
 
 SUPPORT_IDS = [7886119612]
 CHANNEL_ID = -1003251300654
-POST_FOOTER = "\n\n🌐 DexTools Hot Pairs Bot • visibility for your  token"
+POST_FOOTER = "\n\n🌐 DexTools Hot Pairs Bot • visibility for your token"
 
 logger = logging.getLogger("dextoolstrending")
 logger.setLevel(logging.INFO)
@@ -332,8 +333,8 @@ async def handle_tx(message: types.Message, state: FSMContext):
         f"🔥 <b>Service:</b> Hot Pairs ({data['duration']})\n"
         f"⛓️ <b>Network:</b> {data['network'].upper()}\n"
         f"💰 <b>Amount:</b> {data['crypto']} {PAYMENT_UNITS.get(data['network'])}\n"
-        f"📝 <b>CA:</b> <code>{data['ca']}</code>\n"
-        f"🔗 <b>TX ID:</b> <code>{tx}</code>"
+        f"📝 <b>CA:</b> {data['ca']}\n"
+        f"🔗 <b>TX ID:</b> {tx}"
     )
     
     kb = InlineKeyboardMarkup()
@@ -349,41 +350,47 @@ async def handle_tx(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(lambda c: c.data.startswith("admin_activate_"), state='*')
 async def admin_activate(c: types.CallbackQuery):
-    user_id = int(c.data.split("_")[2])
-    # In a real app, we'd pull session data from a DB. Using state data for now.
-    # Since we can't easily get another user's state, we'll recreate the message from the admin notification context or just use a generic activation.
-    # For this implementation, we'll assume the admin message has the CA.
-    
-    # Let's parse the CA from the admin message text
-    import re
-    ca_match = re.search(r"CA: ([\w\d]+)", c.message.text)
-    net_match = re.search(r"Network: ([\w]+)", c.message.text)
-    
-    if ca_match and net_match:
-        ca = ca_match.group(1)
-        net = net_match.group(2).lower()
-        pair = await fetch_token_info(CHAIN_IDS.get(net, net), ca)
-        if pair:
-            msg, logo_url, chart_url = create_professional_message(pair)
-            kb = InlineKeyboardMarkup()
-            if chart_url:
-                kb.add(InlineKeyboardButton(text="📊 View Chart", url=chart_url))
-            
-            if logo_url:
-                img = await resize_image(logo_url)
-                if img: await bot.send_photo(CHANNEL_ID, photo=img, caption=msg, reply_markup=kb)
-                else: await bot.send_message(CHANNEL_ID, msg, reply_markup=kb)
-            else:
-                await bot.send_message(CHANNEL_ID, msg, reply_markup=kb)
+    try:
+        user_id = int(c.data.split("_")[2])
+        msg_text = c.message.text or c.message.caption or ""
+        
+        # Simple extraction using fixed prefixes
+        ca = None
+        net = None
+        
+        for line in msg_text.split('\n'):
+            if "CA:" in line:
+                ca = line.split("CA:")[1].strip()
+            if "Network:" in line:
+                net = line.split("Network:")[1].strip().lower()
                 
-            await c.message.edit_text(c.message.text + "\n\n✅ <b>ACTIVATED!</b>")
-            try:
-                await bot.send_message(user_id, "✅ <b>Payment Verified!</b>\nYour token is now live on Hot Pairs! 🚀")
-            except: pass
+        if ca and net:
+            pair = await fetch_token_info(CHAIN_IDS.get(net, net), ca)
+            if pair:
+                msg, logo_url, chart_url = create_professional_message(pair)
+                kb = InlineKeyboardMarkup()
+                if chart_url:
+                    kb.add(InlineKeyboardButton(text="📊 View Chart", url=chart_url))
+                
+                if logo_url:
+                    img = await resize_image(logo_url)
+                    if img: await bot.send_photo(CHANNEL_ID, photo=img, caption=msg, reply_markup=kb)
+                    else: await bot.send_message(CHANNEL_ID, msg, reply_markup=kb)
+                else:
+                    await bot.send_message(CHANNEL_ID, msg, reply_markup=kb)
+                    
+                await c.message.edit_text(msg_text + "\n\n✅ <b>ACTIVATED!</b>")
+                try:
+                    await bot.send_message(user_id, "✅ <b>Payment Verified!</b>\nYour token is now live on Hot Pairs! 🚀")
+                except: pass
+            else:
+                await c.answer("Error: Token info not found.")
         else:
-            await c.answer("Error: Token info not found.")
-    else:
-        await c.answer("Error parsing CA/Network.")
+            logger.error(f"Failed to parse CA or Network. Text: {msg_text}")
+            await c.answer("Error parsing CA/Network.")
+    except Exception as e:
+        logger.error(f"Error in admin_activate: {e}")
+        await c.answer(f"Error: {e}")
 
 @dp.callback_query_handler(lambda c: c.data == "support", state='*')
 async def support(c: types.CallbackQuery):
