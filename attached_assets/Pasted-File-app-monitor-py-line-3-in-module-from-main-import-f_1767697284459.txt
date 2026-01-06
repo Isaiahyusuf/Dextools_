@@ -1,0 +1,88 @@
+File "/app/monitor.py", line 3, in <module>
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+  File "/app/monitor.py", line 3, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+  File "/app/monitor.py", line 3, in <module>
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+  File "/app/monitor.py", line 3, in <module>
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+  File "/app/monitor.py", line 3, in <module>
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+    from monitor import monitor
+Traceback (most recent call last):
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+  File "/app/main.py", line 404, in <module>
+  File "/app/monitor.py", line 3, in <module>
+    from monitor import monitor
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+  File "/app/monitor.py", line 3, in <module>
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+  File "/app/monitor.py", line 3, in <module>
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+  File "/app/monitor.py", line 3, in <module>
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+  File "/app/monitor.py", line 3, in <module>
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)
+Traceback (most recent call last):
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+  File "/app/monitor.py", line 3, in <module>
+    from main import fetch_token_info_raw, CHANNEL_ID, bot, create_professional_message, resize_image
+  File "/app/main.py", line 404, in <module>
+    from monitor import monitor
+ImportError: cannot import name 'monitor' from partially initialized module 'monitor' (most likely due to a circular import) (/app/monitor.py)

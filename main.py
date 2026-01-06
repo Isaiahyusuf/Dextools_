@@ -401,9 +401,8 @@ async def support(c: types.CallbackQuery):
 async def main_menu(c: types.CallbackQuery, state: FSMContext):
     await start_cmd(c.message, state)
 
+# Moved to avoid circular import
 from monitor import monitor
-
-# ... existing code ...
 
 async def on_startup(dp):
     asyncio.create_task(monitor.run())
