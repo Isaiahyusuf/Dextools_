@@ -131,34 +131,34 @@ def create_professional_message(pair_data):
 @dp.message_handler(commands=['start'], state='*')
 async def start_cmd(message: types.Message, state: FSMContext):
     await state.finish()
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("🔥 Get on Hot Pairs", callback_data="get_hot_pairs")],
-        [InlineKeyboardButton("🛠️ Support", callback_data="support")]
-    ])
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton(text="🔥 Get on Hot Pairs", callback_data="get_hot_pairs"))
+    kb.add(InlineKeyboardButton(text="🛠️ Support", callback_data="support"))
     await message.answer("╔══════════════════════════╗\n  <b>🌟 DEXTOOLS HOT PAIRS BOT 🌟</b>\n╚══════════════════════════╝\n\nSelect a service below:", reply_markup=kb)
 
 @dp.callback_query_handler(lambda c: c.data == "get_hot_pairs", state='*')
 async def select_network(c: types.CallbackQuery):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("💜 Solana", callback_data="net_solana")],
-        [InlineKeyboardButton("💠 Ethereum", callback_data="net_ethereum")],
-        [InlineKeyboardButton("🟡 BSC", callback_data="net_bsc")],
-        [InlineKeyboardButton("🧊 Base", callback_data="net_base")],
-        [InlineKeyboardButton("🔙 Back", callback_data="start")]
-    ])
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton(text="💜 Solana", callback_data="net_solana"),
+        InlineKeyboardButton(text="💠 Ethereum", callback_data="net_ethereum"),
+        InlineKeyboardButton(text="🟡 BSC", callback_data="net_bsc"),
+        InlineKeyboardButton(text="🧊 Base", callback_data="net_base"),
+        InlineKeyboardButton(text="🔙 Back", callback_data="start")
+    )
     await c.message.edit_text("🔥 <b>Hot Pairs</b>\nSelect network:", reply_markup=kb)
 
 @dp.callback_query_handler(lambda c: c.data.startswith("net_"), state='*')
 async def select_duration(c: types.CallbackQuery, state: FSMContext):
     net = c.data.split("_")[1]
     await state.update_data(network=net)
-    buttons = []
+    kb = InlineKeyboardMarkup()
     for dur, usd in HOT_PAIRS_BASE_USD.items():
         crypto = await calculate_package_price(usd, net)
         unit = PAYMENT_UNITS.get(net, "ETH")
-        buttons.append([InlineKeyboardButton(f"{dur} - ${usd} ({crypto} {unit})", callback_data=f"dur_{dur}")])
-    buttons.append([InlineKeyboardButton("🔙 Back", callback_data="get_hot_pairs")])
-    await c.message.edit_text(f"⏰ Select duration for {net.upper()}:", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+        kb.add(InlineKeyboardButton(text=f"{dur} - ${usd} ({crypto} {unit})", callback_data=f"dur_{dur}"))
+    kb.add(InlineKeyboardButton(text="🔙 Back", callback_data="get_hot_pairs"))
+    await c.message.edit_text(f"⏰ Select duration for {net.upper()}:", reply_markup=kb)
     await UserState.waiting_for_hot_pairs_package.set()
 
 @dp.callback_query_handler(lambda c: c.data.startswith("dur_"), state=UserState.waiting_for_hot_pairs_package)
@@ -194,7 +194,8 @@ async def handle_ca(message: types.Message, state: FSMContext):
         f"🏦 <b>Wallet:</b>\n<code>{wallet}</code>\n\n"
         f"Send payment and click Paid."
     )
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton("✅ Paid", callback_data="paid")]])
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton(text="✅ Paid", callback_data="paid"))
     await message.answer(msg, reply_markup=kb)
     await UserState.waiting_for_payment.set()
 
@@ -213,12 +214,16 @@ async def handle_tx(message: types.Message, state: FSMContext):
     # Activation logic
     msg = create_professional_message(data['pair_data'])
     sent = await bot.send_message(CHANNEL_ID, msg)
-    await message.answer(f"✅ <b>Payment Verified!</b>\nYour token is now on Hot Pairs! 🚀\n{sent.url}")
+    await message.answer(f"✅ <b>Payment Verified!</b>\nYour token is now on Hot Pairs! 🚀")
     await state.finish()
 
 @dp.callback_query_handler(lambda c: c.data == "support", state='*')
 async def support(c: types.CallbackQuery):
     await c.message.answer("🛠 <b>Support:</b> @DEXToolsTrend_Support")
+
+@dp.callback_query_handler(lambda c: c.data == "start", state='*')
+async def main_menu(c: types.CallbackQuery, state: FSMContext):
+    await start_cmd(c.message, state)
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
