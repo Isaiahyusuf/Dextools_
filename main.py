@@ -22,7 +22,7 @@ if not BOT_TOKEN:
 
 SUPPORT_IDS = [7886119612]
 CHANNEL_ID = -1003251300654
-POST_FOOTER = "\n\n🌐 DexTools Hot Pairs Bot • Premium Visibility"
+POST_FOOTER = "\n\n🌐 DexTools Hot Pairs Bot • visibility for your  token"
 
 logger = logging.getLogger("dextoolstrending")
 logger.setLevel(logging.INFO)
@@ -113,37 +113,95 @@ def format_percentage(num):
     except: return "⚪ N/A"
 
 def create_professional_message(pair_data):
-    base = pair_data.get('baseToken',{})
-    symbol = base.get('symbol','Unknown')
-    name = base.get('name','Unknown')
-    address = base.get('address','N/A')
-    price = pair_data.get('priceUsd','N/A')
-    mcap = pair_data.get('marketCap',0)
-    liq = pair_data.get('liquidity',{}).get('usd',0)
-    vol = pair_data.get('volume',{}).get('h24',0)
-    chain = pair_data.get('chainId','Unknown').upper()
+    if not pair_data:
+        return None
+    base_token = pair_data.get('baseToken',{})
+    price_usd = pair_data.get('priceUsd','N/A')
+    price_change_h24 = pair_data.get('priceChange',{}).get('h24',0)
+    price_change_h6 = pair_data.get('priceChange',{}).get('h6',0)
+    price_change_h1 = pair_data.get('priceChange',{}).get('h1',0)
+    volume_24h = pair_data.get('volume',{}).get('h24',0)
+    liquidity = pair_data.get('liquidity',{}).get('usd',0)
+    fdv = pair_data.get('fdv',0)
+    market_cap = pair_data.get('marketCap',0)
+    pair_chain = pair_data.get('chainId','Unknown')
+    dex_name = pair_data.get('dexId','Unknown')
     
-    change1h = pair_data.get('priceChange',{}).get('h1',0)
-    change6h = pair_data.get('priceChange',{}).get('h6',0)
-    change24h = pair_data.get('priceChange',{}).get('h24',0)
+    # Social Links extraction for inline formatting
+    info = pair_data.get('info', {})
+    social_links = info.get('socials', [])
+    websites = info.get('websites', [])
+    
+    tg_link = ""
+    tw_link = ""
+    web_link = ""
+    
+    for site in websites:
+        url = site.get('url')
+        if url: web_link = url
 
-    msg = (
+    for social in social_links:
+        s_type = social.get('type', '').lower()
+        url = social.get('url')
+        if not url: continue
+        if 'telegram' in s_type or 't.me' in url:
+            tg_link = url
+        elif 'twitter' in s_type or 'x.com' in url:
+            tw_link = url
+
+    # Price formatting
+    try:
+        price_float = float(price_usd)
+        if price_float < 0.000001: price_display = f"${price_float:.10f}"
+        elif price_float < 0.01: price_display = f"${price_float:.8f}"
+        else: price_display = f"${price_float:.6f}"
+    except: price_display = "N/A"
+
+    network_emoji = NETWORK_EMOJIS.get(str(pair_chain).lower(),"🔗")
+    symbol = base_token.get('symbol','Unknown')
+    name = base_token.get('name','Unknown')
+    
+    display_name = name
+    if tg_link:
+        display_name = f"<a href='{tg_link}'>{display_name}</a>"
+    
+    social_row = ""
+    if tw_link or web_link:
+        links = []
+        if tw_link: links.append(f"<a href='{tw_link}'>Twitter</a>")
+        if web_link: links.append(f"<a href='{web_link}'>Website</a>")
+        social_row = " | ".join(links) + "\n\n"
+
+    message = (
         f"╔══════════════════════════╗\n"
-        f"     <b>🔥 HOT PAIRS PLACEMENT</b>\n"
+        f"     <b>🎯 TOKEN ANALYTICS</b>\n"
         f"╚══════════════════════════╝\n\n"
-        f"💎 <b>{symbol}</b> • {name}\n"
-        f"⛓️ <b>Chain:</b> {chain}\n\n"
-        f"💵 <b>Price:</b> ${price}\n"
-        f"📈 <b>1H:</b> {format_percentage(change1h)}\n"
-        f"📈 <b>6H:</b> {format_percentage(change6h)}\n"
-        f"📈 <b>24H:</b> {format_percentage(change24h)}\n\n"
-        f"💎 <b>Market Cap:</b> {format_number(mcap)}\n"
-        f"🌊 <b>Liquidity:</b> {format_number(liq)}\n"
-        f"📊 <b>24h Volume:</b> {format_number(vol)}\n\n"
-        f"📝 <b>CA:</b> <code>{address}</code>\n"
+        f"{network_emoji} <b>{symbol}</b> • {display_name}\n"
+        f"{social_row}"
+        f"🏦 <b>DEX:</b> {dex_name.upper()}\n"
+        f"⛓️ <b>Chain:</b> {pair_chain.upper()}\n\n"
+        f"┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
+        f"┃  <b>💰 PRICE INFORMATION</b>   ┃\n"
+        f"┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
+        f"💵 <b>Current Price:</b> {price_display}\n\n"
+        f"📊 <b>Price Changes:</b>\n"
+        f"  • 1H:  {format_percentage(price_change_h1)}\n"
+        f"  • 6H:  {format_percentage(price_change_h6)}\n"
+        f"  • 24H: {format_percentage(price_change_h24)}\n\n"
+        f"┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
+        f"┃  <b>📈 MARKET STATISTICS</b>   ┃\n"
+        f"┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
+        f"💎 <b>Market Cap:</b> {format_number(market_cap)}\n"
+        f"🌊 <b>Liquidity:</b> {format_number(liquidity)}\n"
+        f"📊 <b>24h Volume:</b> {format_number(volume_24h)}\n"
+        f"💹 <b>FDV:</b> {format_number(fdv)}\n\n"
+        f"┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
+        f"┃  <b>📝 CONTRACT INFO</b>       ┃\n"
+        f"┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
+        f"<code>{base_token.get('address','N/A')}</code>\n"
         f"{POST_FOOTER}"
     )
-    return msg
+    return message
 
 @dp.message_handler(commands=['start'], state='*')
 async def start_cmd(message: types.Message, state: FSMContext):
@@ -201,14 +259,14 @@ async def handle_ca(message: types.Message, state: FSMContext):
     
     await state.update_data(ca=ca, pair_data=pair)
     msg = create_professional_message(pair)
-    await message.answer(f"🔍 <b>Token Found!</b>\n\n{msg}\n\nProceed to payment?")
+    await message.answer(msg)
     
     wallet = PAYMENT_WALLETS.get(net)
     unit = PAYMENT_UNITS.get(net)
     crypto = data['crypto']
     
     pay_msg = (
-        f"💳 <b>PAYMENT DETAILS</b>\n\n"
+        f"💳 <b>PAYMENT REQUIRED</b>\n\n"
         f"🔥 <b>Service:</b> Hot Pairs ({data['duration']})\n"
         f"💰 <b>Amount:</b> {crypto} {unit} (${data['usd']} USD)\n"
         f"🏦 <b>Wallet:</b>\n<code>{wallet}</code>\n\n"
