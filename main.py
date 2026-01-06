@@ -78,6 +78,7 @@ dp = Dispatcher(bot, storage=storage)
 class UserState(StatesGroup):
     waiting_for_ca = State()
     waiting_for_hot_pairs_package = State()
+    waiting_for_confirmation = State()
     waiting_for_payment = State()
     waiting_for_tx_id = State()
 
@@ -276,18 +277,30 @@ async def handle_ca(message: types.Message, state: FSMContext):
     await state.update_data(ca=ca, pair_data=pair)
     msg, logo_url = create_professional_message(pair)
     
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton(text="✅ Confirm & Pay", callback_data="confirm_project"))
+    kb.add(InlineKeyboardButton(text="❌ Cancel", callback_data="get_hot_pairs"))
+
     if logo_url:
         img = await resize_image(logo_url)
         if img:
-            await message.answer_photo(photo=img, caption=msg)
+            await message.answer_photo(photo=img, caption=f"🔍 <b>Please confirm this is your project:</b>\n\n{msg}", reply_markup=kb)
         else:
-            await message.answer(msg)
+            await message.answer(f"🔍 <b>Please confirm this is your project:</b>\n\n{msg}", reply_markup=kb)
     else:
-        await message.answer(msg)
+        await message.answer(f"🔍 <b>Please confirm this is your project:</b>\n\n{msg}", reply_markup=kb)
     
+    await UserState.waiting_for_confirmation.set()
+
+@dp.callback_query_handler(lambda c: c.data == "confirm_project", state=UserState.waiting_for_confirmation)
+async def handle_confirmation(c: types.CallbackQuery, state: FSMContext):
+    await c.answer()
+    data = await state.get_data()
+    net = data['network']
     wallet = PAYMENT_WALLETS.get(net)
     unit = PAYMENT_UNITS.get(net)
     crypto = data['crypto']
+    
     pay_msg = (
         f"💳 <b>PAYMENT DETAILS</b>\n\n"
         f"🔥 <b>Service:</b> Hot Pairs ({data['duration']})\n"
@@ -297,7 +310,7 @@ async def handle_ca(message: types.Message, state: FSMContext):
     )
     kb = InlineKeyboardMarkup()
     kb.add(InlineKeyboardButton(text="✅ Paid", callback_data="paid"))
-    await message.answer(pay_msg, reply_markup=kb)
+    await c.message.answer(pay_msg, reply_markup=kb)
     await UserState.waiting_for_payment.set()
 
 @dp.callback_query_handler(lambda c: c.data == "paid", state=UserState.waiting_for_payment)
